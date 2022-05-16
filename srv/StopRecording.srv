@@ -1,0 +1,4 @@
+bool arg
+---
+string path
+uint32 size

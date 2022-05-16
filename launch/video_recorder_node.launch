@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="encoding" default="bgr8" />
+  <arg name="fps"      default="30" />
+  <arg name="out_dir"  default="$(env HOME)" />
+  <arg name="topic"    default="/camera/image_raw" />
+
+  <group ns="$(arg topic)">
+    <node pkg="video_recorder" type="video_recorder_node" name="video_recorder_node">
+      <param name="encoding"   value="$(arg encoding)" />
+      <param name="fps"        value="$(arg fps)" />
+      <param name="out_dir"    value="$(arg out_dir)" />
+      <param name="topic"      value="$(arg topic)" />
+    </node>
+  </group>
+</launch>
