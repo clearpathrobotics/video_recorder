@@ -5,7 +5,7 @@
   <arg name="topic"    default="/camera/image_raw" />
 
   <group ns="$(arg topic)">
-    <node pkg="video_recorder" type="video_recorder_node" name="video_recorder_node">
+    <node pkg="video_recorder" type="video_recorder_node" name="capture">
       <param name="fps"        value="$(arg fps)" />
       <param name="out_dir"    value="$(arg out_dir)" />
       <param name="topic"      value="$(arg topic)" />

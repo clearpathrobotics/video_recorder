@@ -19,6 +19,7 @@ include_directories(include
 
 add_service_files(
   FILES
+  SaveImage.srv
   StartRecording.srv
   StopRecording.srv
 )

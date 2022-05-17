@@ -1,4 +1,3 @@
 string filename
-uint64 duration
 ---
 string path
