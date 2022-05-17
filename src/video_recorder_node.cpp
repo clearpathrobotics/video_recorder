@@ -15,7 +15,7 @@
 using namespace video_recorder;
 
 /*!
- * Yes, this is a gross C function, but std::filessystem isn't available in C++14
+ * Yes, this is a gross C function, but std::filesystem isn't available in C++14
  * and Melodic doesn't support C++17
  */
 static int filesize(std::string path)
@@ -56,7 +56,6 @@ void VideoRecorderNode::loadParams()
 {
   nh_.param<std::string>("topic", img_topic_, "/camera/image_raw");
   nh_.param<std::string>("out_dir", out_dir_, getenv("HOME"));
-  nh_.param<std::string>("encoding", encoding_, "bgr8");
   nh_.param<double>("fps", fps_, 30.0);
 
   if (out_dir_[out_dir_.length()-1] != '/')
@@ -124,7 +123,9 @@ bool VideoRecorderNode::stopRecording(
     res.path = out_path_;
     res.size = filesize(out_path_);
 
+#ifdef DEBUG
     cv::destroyWindow(out_path_.c_str());
+#endif
   }
   else
   {
@@ -145,14 +146,94 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
       vout_ = new cv::VideoWriter(out_path_, CV_FOURCC('X', 'V', 'I', 'D'), fps_, cv::Size(img.width, img.height), true);
     }
 
+    // realsense2_camera seems to have a bug where it uses the OpenCV encoding, which breaks the conversion
+    // so make a shallow copy and ensure the encoding is correct
+    sensor_msgs::Image img_fixed;
+    img_fixed.header = img.header;
+    img_fixed.is_bigendian = img.is_bigendian;
+    img_fixed.height = img.height;
+    img_fixed.width = img.width;
+    img_fixed.step = img.step;
+    img_fixed.data = img.data;
+    if (img.encoding == "16UC1")
+    {
+      img_fixed.encoding = sensor_msgs::image_encodings::MONO16;
+    }
+    else if(img.encoding == sensor_msgs::image_encodings::MONO8)
+    {
+      img_fixed.encoding = "mono8";
+    }
+    else
+    {
+      img_fixed.encoding = img.encoding;
+    }
+
     cv_bridge::CvImagePtr cv_ptr;
+    bool frame_ok = true;
     try
     {
-      cv_ptr = cv_bridge::toCvCopy(img, encoding_);
-      (*vout_) << cv_ptr->image;
+      // depending on the input image encoding we may need to convert the colour to something usable
+      // whatever we get, convert it to BGR8, OpenCV's default 24-bit RGB encoding
+      cv_ptr = cv_bridge::toCvCopy(img_fixed, img_fixed.encoding);
+      if (img_fixed.encoding == sensor_msgs::image_encodings::RGB8)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_RGB2BGR);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::RGBA8)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_RGBA2BGR);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::RGB16)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_RGBA2BGR);
+        cv_ptr->image.convertTo(cv_ptr->image, CV_8UC3);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::RGBA16)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_RGB2BGR);
+        cv_ptr->image.convertTo(cv_ptr->image, CV_8UC3);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::BGR8)
+      {
+        // do nothing
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::BGRA8)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_BGRA2BGR);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::BGR16)
+      {
+        cv_ptr->image.convertTo(cv_ptr->image, CV_8UC3);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::BGRA16)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_BGRA2BGR);
+        cv_ptr->image.convertTo(cv_ptr->image, CV_8UC3);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::MONO8)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_GRAY2BGR);
+      }
+      else if (img_fixed.encoding == sensor_msgs::image_encodings::MONO16)
+      {
+        cv::cvtColor(cv_ptr->image, cv_ptr->image, cv::COLOR_GRAY2BGR);
+        cv_ptr->image.convertTo(cv_ptr->image, CV_8UC3);
+      }
+      else
+      {
+        ROS_WARN("Unsupported image format %s", img.encoding.c_str());
+        frame_ok = false;
+      }
 
-      cv::imshow(out_path_.c_str(), cv_ptr->image);
-      cv::waitKey(1);
+      if (frame_ok)
+      {
+        (*vout_) << cv_ptr->image;
+
+#ifdef DEBUG
+        cv::imshow(out_path_.c_str(), cv_ptr->image);
+        cv::waitKey(1);
+#endif
+      }
     }
     catch(cv_bridge::Exception &err)
     {

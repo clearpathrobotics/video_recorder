@@ -31,7 +31,6 @@ namespace video_recorder
     bool is_recording_;
 
     std::string img_topic_;
-    std::string encoding_;
     std::string out_dir_;
     std::string out_path_;
     double fps_;
@@ -40,9 +39,9 @@ namespace video_recorder
 
     void loadParams();
 
+    // Service & subscription callbacks
     bool startRecording(video_recorder::StartRecording::Request &req, video_recorder::StartRecording::Response &res);
     bool stopRecording(video_recorder::StopRecording::Request &req, video_recorder::StopRecording::Response &res);
-
     void imageCallback(const sensor_msgs::Image &img);
   };
 }

@@ -15,10 +15,9 @@ video_recorder_node:
 - `topic` is fairly self-explanatory: this is the ROS topic to subscribe to.
 - `fps` is the FPS of the output file. This should be set to the same FPS that the camera node publihes at.
 - `out_dir` is the directory on-disk to save the recorded videos.  The directory must already exist.
-- `encoding` is the encoding of the image topic. Most RGB cameras will use `bgr8`.
 
-Note: there is currently a bug when trying to use this node to record 16-bit grayscale data (e.g. raw depth data
-from a RealSense or Zed2 camera).
+The video file always uses OpenCV's `8UC3` matrix type in `BGR` format, regardless of the stream source's encoding.
+
 
 Recording Videos
 ------------------
