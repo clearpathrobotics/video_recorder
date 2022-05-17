@@ -18,11 +18,11 @@ using namespace video_recorder;
  * Yes, this is a gross C function, but std::filesystem isn't available in C++14
  * and Melodic doesn't support C++17
  */
-static int filesize(std::string path)
+static unsigned long filesize(std::string path)
 {
   struct stat *buf = (struct stat*)malloc(sizeof(struct stat));
   stat(path.c_str(), buf);
-  int size = buf->st_size;
+  unsigned long size = buf->st_size;
   free(buf);
   return size;
 }

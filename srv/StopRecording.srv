@@ -1,4 +1,4 @@
 bool arg
 ---
 string path
-uint32 size
+uint64 size
