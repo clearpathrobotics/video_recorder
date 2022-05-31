@@ -279,7 +279,7 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
  */
 cv::VideoWriter *VideoRecorderNode::createVideoWriter(const int width, const int height)
 {
-  return new cv::VideoWriter(video_path_, CV_FOURCC('X', 'V', 'I', 'D'), fps_, cv::Size(width, height), true);
+  return new cv::VideoWriter(video_path_, cv::VideoWriter::fourcc('X', 'V', 'I', 'D'), fps_, cv::Size(width, height), true);
 }
 
 void VideoRecorderNode::appendFrame(const cv::Mat &img)
