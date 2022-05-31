@@ -50,12 +50,11 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
 {
   pthread_mutex_init(&video_recording_lock_, NULL);
 
-  frame_service_ = nh.advertiseService("save_image", &VideoRecorderNode::saveImageHandler, this);
-  start_service_ = nh.advertiseService("start_recording", &VideoRecorderNode::startRecordingHandler, this);
-  stop_service_ = nh.advertiseService("stop_recording", &VideoRecorderNode::stopRecordingHandler, this);
-
   // the topic we subscribe to is defined as a parameter
   loadParams();
+  frame_service_ = nh.advertiseService(img_topic_ + "/save_image", &VideoRecorderNode::saveImageHandler, this);
+  start_service_ = nh.advertiseService(img_topic_ + "/start_recording", &VideoRecorderNode::startRecordingHandler, this);
+  stop_service_ = nh.advertiseService(img_topic_ + "/stop_recording", &VideoRecorderNode::stopRecordingHandler, this);
   img_sub_ = nh.subscribe(img_topic_, 1, &VideoRecorderNode::imageCallback, this);
 }
 
