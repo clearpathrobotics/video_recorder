@@ -2,7 +2,7 @@ video_recorder
 =================
 
 This package contains the `video_recorder_node`, which can be used to record a video file from
-a topic publishing `senso_msgs/Image` data.
+a topic publishing `sensor_msgs/Image` data.
 
 The node's configuration is done via `rosparams`:
 ```yaml
