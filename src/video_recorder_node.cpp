@@ -8,6 +8,7 @@
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
+#include <std_msgs/Bool.h>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -44,10 +45,12 @@ static inline bool ends_with(std::string const & value, std::string const & endi
  */
 VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
   nh_(nh),
-  is_recording_(false),
   vout_(NULL),
   capture_next_frame_(false)
 {
+  is_recording_ = std_msgs::Bool();
+  is_recording_.data = false;
+
   pthread_mutex_init(&video_recording_lock_, NULL);
 
   // the topic we subscribe to is defined as a parameter
@@ -55,6 +58,7 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
   frame_service_ = nh.advertiseService(img_topic_ + "/save_image", &VideoRecorderNode::saveImageHandler, this);
   start_service_ = nh.advertiseService(img_topic_ + "/start_recording", &VideoRecorderNode::startRecordingHandler, this);
   stop_service_ = nh.advertiseService(img_topic_ + "/stop_recording", &VideoRecorderNode::stopRecordingHandler, this);
+  is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic_ + "/is_recording", 1);
   img_sub_ = nh.subscribe(img_topic_, 1, &VideoRecorderNode::imageCallback, this);
 }
 
@@ -119,7 +123,7 @@ bool VideoRecorderNode::startRecordingHandler(
   pthread_mutex_lock(&video_recording_lock_);
 
   bool ok = true;
-  if (!is_recording_)
+  if (!is_recording_.data)
   {
     // First figure out the full path of the .avi file we're saving
     std::stringstream ss;
@@ -143,7 +147,7 @@ bool VideoRecorderNode::startRecordingHandler(
     video_start_time_ = std::chrono::system_clock::now();
 
     // we're ready! signal that we're recording so the image subscriber can start recording frames
-    is_recording_ = true;
+    is_recording_.data = true;
     ROS_INFO("Recoring to %s", video_path_.c_str());
     res.path = video_path_;
   }
@@ -169,7 +173,7 @@ bool VideoRecorderNode::stopRecordingHandler(
 {
   pthread_mutex_lock(&video_recording_lock_);
 
-  if (is_recording_)
+  if (is_recording_.data)
   {
     stopRecording();
 
@@ -249,7 +253,7 @@ bool VideoRecorderNode::saveImageHandler(
  */
 void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
 {
-  if (is_recording_ || capture_next_frame_)
+  if (is_recording_.data || capture_next_frame_)
   {
     cv::Mat m;
     bool conversion_ok = image2mat(img, m);
@@ -258,7 +262,7 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
     if(!conversion_ok)
       return;
 
-    if (is_recording_)
+    if (is_recording_.data)
     {
       appendFrame(m);
     }
@@ -268,6 +272,8 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
       saveImage(m);
     }
   }
+
+  is_recording_pub_.publish(is_recording_);
 }
 
 /*!
@@ -311,7 +317,7 @@ void VideoRecorderNode::appendFrame(const cv::Mat &img)
  */
 void VideoRecorderNode::stopRecording()
 {
-  is_recording_ = false;
+  is_recording_.data = false;
   if (vout_ != NULL)
   {
     vout_->release();

@@ -7,6 +7,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <std_msgs/Bool.h>
 #include <video_recorder/SaveImage.h>
 #include <video_recorder/StartRecording.h>
 #include <video_recorder/StopRecording.h>
@@ -24,7 +25,7 @@ namespace video_recorder
     VideoRecorderNode(ros::NodeHandle &nh);
     ~VideoRecorderNode();
 
-    const bool isRecording(){ return is_recording_; }
+    const bool isRecording(){ return is_recording_.data; }
 
   private:
     // Node handle, subscriptions, publications, services
@@ -33,6 +34,7 @@ namespace video_recorder
     ros::ServiceServer start_service_;
     ros::ServiceServer stop_service_;
     ros::Subscriber img_sub_;
+    ros::Publisher is_recording_pub_;
 
     // ROS parameters
     void loadParams();
@@ -50,7 +52,7 @@ namespace video_recorder
     void imageCallback(const sensor_msgs::Image &img);
 
     // Video capture
-    bool is_recording_;
+    std_msgs::Bool is_recording_;
     std::chrono::duration<unsigned long, std::ratio<1> > max_video_duration_;
     std::chrono::time_point<std::chrono::system_clock> video_start_time_;
     std::string video_path_;
