@@ -8,9 +8,9 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Bool.h>
-#include <video_recorder/SaveImage.h>
-#include <video_recorder/StartRecording.h>
-#include <video_recorder/StopRecording.h>
+#include <video_recorder_msgs/SaveImage.h>
+#include <video_recorder_msgs/StartRecording.h>
+#include <video_recorder_msgs/StopRecording.h>
 
 namespace video_recorder
 {
@@ -46,9 +46,9 @@ namespace video_recorder
     pthread_mutex_t video_recording_lock_;
 
     // Service & subscription callbacks
-    bool saveImageHandler(video_recorder::SaveImage::Request &req, video_recorder::SaveImage::Response &res);
-    bool startRecordingHandler(video_recorder::StartRecording::Request &req, video_recorder::StartRecording::Response &res);
-    bool stopRecordingHandler(video_recorder::StopRecording::Request &req, video_recorder::StopRecording::Response &res);
+    bool saveImageHandler(video_recorder_msgs::SaveImage::Request &req, video_recorder_msgs::SaveImage::Response &res);
+    bool startRecordingHandler(video_recorder_msgs::StartRecording::Request &req, video_recorder_msgs::StartRecording::Response &res);
+    bool stopRecordingHandler(video_recorder_msgs::StopRecording::Request &req, video_recorder_msgs::StopRecording::Response &res);
     void imageCallback(const sensor_msgs::Image &img);
 
     // Video capture

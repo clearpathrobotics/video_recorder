@@ -3,12 +3,10 @@ project(video_recorder)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  message_generation
-  sensor_msgs
-  std_msgs
   cv_bridge
   roscpp
   image_transport
+  video_recorder_msgs
 )
 find_package(OpenCV 4 REQUIRED)
 
@@ -17,24 +15,11 @@ include_directories(include
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_service_files(
-  FILES
-  SaveImage.srv
-  StartRecording.srv
-  StopRecording.srv
-)
-
-generate_messages(
-  DEPENDENCIES
-  sensor_msgs
-  std_msgs
-)
-
 catkin_package()
 
 add_executable(video_recorder_node src/video_recorder_node.cpp)
 target_link_libraries(video_recorder_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-#add_dependencies(video_recorder_node sensor_msgs std_msgs)
+add_dependencies(video_recorder_node video_recorder_msgs_generate_messages_cpp sensor_msgs_generate_messages_cpp std_msgs_generate_messages_cpp)
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

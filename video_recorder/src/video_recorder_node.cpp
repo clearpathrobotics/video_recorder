@@ -17,6 +17,7 @@
 #include <opencv2/videoio/videoio.hpp>
 
 using namespace video_recorder;
+using namespace video_recorder_msgs;
 
 /*!
  * Yes, this is a gross C function, but std::filesystem isn't available in C++14
@@ -113,8 +114,8 @@ std::string VideoRecorderNode::defaultFilename(std::string extension)
  * Will return an error if we are already recording video
  */
 bool VideoRecorderNode::startRecordingHandler(
-  video_recorder::StartRecording::Request &req,
-  video_recorder::StartRecording::Response &res)
+  StartRecording::Request &req,
+  StartRecording::Response &res)
 {
   // Because initializing the video recording is a relatively lengthy operation
   // it's theoretically possible for the user to invoke the service multiple times before we're ready.
@@ -168,8 +169,8 @@ bool VideoRecorderNode::startRecordingHandler(
  * Returns an error if there is no recording to stop.
  */
 bool VideoRecorderNode::stopRecordingHandler(
-  video_recorder::StopRecording::Request &req,
-  video_recorder::StopRecording::Response &res)
+  StopRecording::Request &req,
+  StopRecording::Response &res)
 {
   pthread_mutex_lock(&video_recording_lock_);
 
@@ -203,8 +204,8 @@ bool VideoRecorderNode::stopRecordingHandler(
  * Returns an error if we're already queued to record an image but haven't actually saved it yet
  */
 bool VideoRecorderNode::saveImageHandler(
-  video_recorder::SaveImage::Request &req,
-  video_recorder::SaveImage::Response &res)
+  SaveImage::Request &req,
+  SaveImage::Response &res)
 {
   bool ok = true;
   if (!capture_next_frame_)
