@@ -9,11 +9,15 @@ The node's configuration is done via `rosparams`:
 video_recorder_node:
   fps: 30.0
   topic: /camera/image_raw
-  out_dir: $HOME
+  out_dir: /home/administrator/capture
 ```
 - `topic` is fairly self-explanatory: this is the ROS topic to subscribe to. Default: `/camera/image_raw`
 - `fps` is the FPS of the output file. This should be set to the same FPS that the camera node publihes at. Default: `30`
-- `out_dir` is the directory on-disk to save the recorded videos.  The directory must already exist. Default: `$HOME`
+- `out_dir` is the directory on-disk to save the recorded videos.  The directory must already exist. Default: `/tmp`
+
+The provided launch file will set `out_dir` to `$HOME` if it is run as a normal user. When launching the
+`video_recorder_node` as part of a `robot_upstart` job it is possible that the `$HOME` envar is not defined, which is
+why the default is `/tmp`.
 
 The video file always uses OpenCV's `8UC3` matrix type in `BGR` format, regardless of the stream source's encoding.
 

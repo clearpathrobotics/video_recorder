@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="fps"      default="30" />
-  <arg name="out_dir"  default="$(env HOME)" />
+  <arg name="out_dir"  default="$(optenv HOME /tmp)" />
   <arg name="topic"    default="/camera/image_raw" />
 
   <group ns="$(arg topic)">

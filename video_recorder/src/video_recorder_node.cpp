@@ -77,7 +77,7 @@ VideoRecorderNode::~VideoRecorderNode()
 void VideoRecorderNode::loadParams()
 {
   nh_.param<std::string>("topic", img_topic_, "/camera/image_raw");
-  nh_.param<std::string>("out_dir", out_dir_, getenv("HOME"));
+  nh_.param<std::string>("out_dir", out_dir_, "/tmp");
   nh_.param<double>("fps", fps_, 30.0);
 
   if (out_dir_[out_dir_.length()-1] != '/')
