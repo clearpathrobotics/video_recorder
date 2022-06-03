@@ -351,7 +351,7 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
   {
     img_fixed.encoding = sensor_msgs::image_encodings::MONO16;
   }
-  else if(src.encoding == sensor_msgs::image_encodings::MONO8)
+  else if(src.encoding == "8UC1")
   {
     img_fixed.encoding = "mono8";
   }
@@ -366,7 +366,7 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
   {
     // depending on the input image encoding we may need to convert the colour to something usable
     // whatever we get, convert it to BGR8, OpenCV's default 24-bit RGB encoding
-    cv_ptr = cv_bridge::toCvCopy(src, img_fixed.encoding);
+    cv_ptr = cv_bridge::toCvCopy(img_fixed, img_fixed.encoding);
     if (img_fixed.encoding == sensor_msgs::image_encodings::RGB8)
     {
       cv::cvtColor(cv_ptr->image, dst, cv::COLOR_RGB2BGR);
