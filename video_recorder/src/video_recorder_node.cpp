@@ -290,6 +290,7 @@ cv::VideoWriter *VideoRecorderNode::createVideoWriter(const int width, const int
 
 void VideoRecorderNode::appendFrame(const cv::Mat &img)
 {
+  pthread_mutex_lock(&video_recording_lock_);
   // create the cv::VideoWriter instance if we need to
   if (vout_ == NULL)
   {
@@ -306,11 +307,11 @@ void VideoRecorderNode::appendFrame(const cv::Mat &img)
     if (elapsed >= max_video_duration_)
     {
       ROS_INFO("User-specified duration elapsed; stopping recording %s", video_path_.c_str());
-      pthread_mutex_lock(&video_recording_lock_);
+
       stopRecording();
-      pthread_mutex_unlock(&video_recording_lock_);
     }
   }
+  pthread_mutex_unlock(&video_recording_lock_);
 }
 
 /*!
