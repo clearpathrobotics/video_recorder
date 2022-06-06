@@ -149,7 +149,7 @@ bool VideoRecorderNode::startRecordingHandler(
 
     // we're ready! signal that we're recording so the image subscriber can start recording frames
     is_recording_.data = true;
-    ROS_INFO("Recoring to %s", video_path_.c_str());
+    ROS_INFO("Recording to %s", video_path_.c_str());
     res.path = video_path_;
   }
   else
@@ -176,6 +176,8 @@ bool VideoRecorderNode::stopRecordingHandler(
 
   if (is_recording_.data)
   {
+    ROS_INFO("Stopping recording to to %s", video_path_.c_str());
+
     stopRecording();
 
     // calculate the total recording time in seconds
