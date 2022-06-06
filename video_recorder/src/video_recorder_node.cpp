@@ -381,12 +381,12 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
     else if (img_fixed.encoding == sensor_msgs::image_encodings::RGB16)
     {
       cv::cvtColor(cv_ptr->image, dst, cv::COLOR_RGBA2BGR);
-      cv_ptr->image.convertTo(dst, CV_8UC3);
+      dst.convertTo(dst, CV_8UC3);
     }
     else if (img_fixed.encoding == sensor_msgs::image_encodings::RGBA16)
     {
       cv::cvtColor(cv_ptr->image,dst, cv::COLOR_RGB2BGR);
-      cv_ptr->image.convertTo(dst, CV_8UC3);
+      dst.convertTo(dst, CV_8UC3);
     }
     else if (img_fixed.encoding == sensor_msgs::image_encodings::BGR8)
     {
@@ -403,7 +403,7 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
     else if (img_fixed.encoding == sensor_msgs::image_encodings::BGRA16)
     {
       cv::cvtColor(cv_ptr->image, dst, cv::COLOR_BGRA2BGR);
-      cv_ptr->image.convertTo(dst, CV_8UC3);
+      dst.convertTo(dst, CV_8UC3);
     }
     else if (img_fixed.encoding == sensor_msgs::image_encodings::MONO8)
     {
@@ -412,7 +412,7 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
     else if (img_fixed.encoding == sensor_msgs::image_encodings::MONO16)
     {
       cv::cvtColor(cv_ptr->image, dst, cv::COLOR_GRAY2BGR);
-      cv_ptr->image.convertTo(dst, CV_8UC3);
+      dst.convertTo(dst, CV_8UC3);
     }
     else
     {
