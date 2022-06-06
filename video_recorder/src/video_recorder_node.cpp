@@ -412,7 +412,7 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
     else if (img_fixed.encoding == sensor_msgs::image_encodings::MONO16)
     {
       cv::cvtColor(cv_ptr->image, dst, cv::COLOR_GRAY2BGR);
-      dst.convertTo(dst, CV_8UC3);
+      dst.convertTo(dst, CV_8UC3, 1.0/255.0);  // only take the high byte, otherwise everything is completely washed out
     }
     else
     {
