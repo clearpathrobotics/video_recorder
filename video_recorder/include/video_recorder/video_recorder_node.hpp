@@ -64,6 +64,7 @@ namespace video_recorder
     // Still image capture
     bool capture_next_frame_;
     std::string image_path_;
+    std::chrono::time_point<std::chrono::system_clock> photo_trigger_time_;
     void saveImage(const cv::Mat &img);
 
     // General Utilities

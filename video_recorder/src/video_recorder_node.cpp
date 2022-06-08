@@ -236,6 +236,8 @@ bool VideoRecorderNode::saveImageHandler(
     }
     ss >> image_path_;
 
+    std::chrono::duration<unsigned long, std::ratio<1> > delay = std::chrono::seconds(req.delay);
+    photo_trigger_time_ = std::chrono::system_clock::now() + delay;
     capture_next_frame_ = true;
     ROS_INFO("Saving next frame to to %s", image_path_.c_str());
     res.path = image_path_;
@@ -270,7 +272,7 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
       appendFrame(m);
     }
 
-    if (capture_next_frame_)
+    if (capture_next_frame_ && (std::chrono::system_clock::now() - photo_trigger_time_) >= std::chrono::seconds(0))
     {
       saveImage(m);
     }

@@ -71,10 +71,13 @@ Saving Images
 To save a single frame as an image, use the `save_image` service, optionally specifying the filename
 for the resulting image:
 ```bash
-rosservice call  /camera/image_raw/save_image "filename: ''"
+rosservice call  /camera/image_raw/save_image "{delay: 0.0, filename: ''}"
 ```
 If the `filename` parameter is empty, the default format of `YYYYMMDDhhmmss.png` will be used.  If the `filename`
 parameter is not empty, the file extension should be included in the parameter.  Supported extensions are:
 - `.png` (default),
 - `.jpg` (or `.jpeg`), and
 - `.bmp`
+
+The `delay` parameter is an optional delay to apply before taking the picture, measured in seconds.  This can be useful
+to work around high-latency cameras to ensure the correct frame is recorded.

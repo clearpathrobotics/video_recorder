@@ -1,3 +1,4 @@
 string filename
+uint32 delay
 ---
 string path
