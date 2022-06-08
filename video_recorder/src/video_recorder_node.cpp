@@ -2,6 +2,7 @@
 #include <ctime>
 #include <iostream>
 #include <sys/stat.h>
+#include <thread>
 
 #include <video_recorder/video_recorder_node.hpp>
 #include <ros/ros.h>
@@ -239,8 +240,14 @@ bool VideoRecorderNode::saveImageHandler(
     std::chrono::duration<unsigned long, std::ratio<1> > delay = std::chrono::seconds(req.delay);
     photo_trigger_time_ = std::chrono::system_clock::now() + delay;
     capture_next_frame_ = true;
-    ROS_INFO("Saving next frame to to %s", image_path_.c_str());
+    ROS_INFO("Saving image in %d seconds to %s", req.delay, image_path_.c_str());
     res.path = image_path_;
+
+    // block returning from the service until the image has been saved
+    while (capture_next_frame_)
+    {
+      std::this_thread::sleep_for (std::chrono::seconds(1));
+    }
   }
   else
   {
