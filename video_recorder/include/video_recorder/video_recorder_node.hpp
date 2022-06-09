@@ -6,11 +6,16 @@
 #include <pthread.h>
 
 #include <ros/ros.h>
+#include <actionlib/server/simple_action_server.h>
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Bool.h>
-#include <video_recorder_msgs/SaveImage.h>
-#include <video_recorder_msgs/StartRecording.h>
-#include <video_recorder_msgs/StopRecording.h>
+#include <video_recorder_msgs/SaveImageAction.h>
+#include <video_recorder_msgs/StartRecordingAction.h>
+#include <video_recorder_msgs/StopRecordingAction.h>
+
+typedef actionlib::SimpleActionServer<video_recorder_msgs::SaveImageAction> SaveImageActionServer;
+typedef actionlib::SimpleActionServer<video_recorder_msgs::StartRecordingAction> StartRecordingActionServer;
+typedef actionlib::SimpleActionServer<video_recorder_msgs::StopRecordingAction> StopRecordingActionServer;
 
 namespace video_recorder
 {
@@ -30,9 +35,9 @@ namespace video_recorder
   private:
     // Node handle, subscriptions, publications, services
     ros::NodeHandle &nh_;
-    ros::ServiceServer frame_service_;
-    ros::ServiceServer start_service_;
-    ros::ServiceServer stop_service_;
+    SaveImageActionServer frame_service_;
+    StartRecordingActionServer start_service_;
+    StopRecordingActionServer stop_service_;
     ros::Subscriber img_sub_;
     ros::Publisher is_recording_pub_;
 
@@ -46,9 +51,9 @@ namespace video_recorder
     pthread_mutex_t video_recording_lock_;
 
     // Service & subscription callbacks
-    bool saveImageHandler(video_recorder_msgs::SaveImage::Request &req, video_recorder_msgs::SaveImage::Response &res);
-    bool startRecordingHandler(video_recorder_msgs::StartRecording::Request &req, video_recorder_msgs::StartRecording::Response &res);
-    bool stopRecordingHandler(video_recorder_msgs::StopRecording::Request &req, video_recorder_msgs::StopRecording::Response &res);
+    void saveImageHandler(const video_recorder_msgs::SaveImageGoalConstPtr& goal);
+    void startRecordingHandler(const video_recorder_msgs::StartRecordingGoalConstPtr& goal);
+    void stopRecordingHandler(const video_recorder_msgs::StopRecordingGoalConstPtr& goal);
     void imageCallback(const sensor_msgs::Image &img);
 
     // Video capture
@@ -64,7 +69,6 @@ namespace video_recorder
     // Still image capture
     bool capture_next_frame_;
     std::string image_path_;
-    std::chrono::time_point<std::chrono::system_clock> photo_trigger_time_;
     void saveImage(const cv::Mat &img);
 
     // General Utilities

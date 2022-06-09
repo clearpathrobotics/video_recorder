@@ -3,3 +3,5 @@ bool arg
 string path
 uint64 size
 uint64 duration
+---
+bool arg

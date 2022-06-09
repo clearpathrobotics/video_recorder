@@ -12,8 +12,9 @@
   <build_depend>message_generation</build_depend>
   <build_export_depend>message_generation</build_export_depend>
 
-  <depend>std_msgs</depend>
-  <exec_depend>message_runtime</exec_depend>
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>genmsg</depend>
 
   <export>
   </export>

@@ -2,3 +2,5 @@ string filename
 uint32 delay
 ---
 string path
+---
+uint32 time_remaining

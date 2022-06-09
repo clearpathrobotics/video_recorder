@@ -2,3 +2,5 @@ string filename
 uint64 duration
 ---
 string path
+---
+uint32 time_remaining

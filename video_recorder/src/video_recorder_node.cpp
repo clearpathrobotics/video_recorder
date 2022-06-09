@@ -5,6 +5,7 @@
 #include <thread>
 
 #include <video_recorder/video_recorder_node.hpp>
+
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
@@ -47,6 +48,9 @@ static inline bool ends_with(std::string const & value, std::string const & endi
  */
 VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
   nh_(nh),
+  frame_service_(nh, "save_image", boost::bind(&VideoRecorderNode::saveImageHandler, this, _1), false),
+  start_service_(nh, "start_recording", boost::bind(&VideoRecorderNode::startRecordingHandler, this, _1), false),
+  stop_service_(nh, "stop_recording", boost::bind(&VideoRecorderNode::stopRecordingHandler, this, _1), false),
   vout_(NULL),
   capture_next_frame_(false)
 {
@@ -57,11 +61,12 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
 
   // the topic we subscribe to is defined as a parameter
   loadParams();
-  frame_service_ = nh.advertiseService(img_topic_ + "/save_image", &VideoRecorderNode::saveImageHandler, this);
-  start_service_ = nh.advertiseService(img_topic_ + "/start_recording", &VideoRecorderNode::startRecordingHandler, this);
-  stop_service_ = nh.advertiseService(img_topic_ + "/stop_recording", &VideoRecorderNode::stopRecordingHandler, this);
-  is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic_ + "/is_recording", 1);
+  is_recording_pub_ = nh.advertise<std_msgs::Bool>("is_recording", 1);
   img_sub_ = nh.subscribe(img_topic_, 1, &VideoRecorderNode::imageCallback, this);
+
+  frame_service_.start();
+  start_service_.start();
+  stop_service_.start();
 }
 
 /*!
@@ -202,33 +207,29 @@ bool VideoRecorderNode::stopRecordingHandler(
 }
 
 /*!
- * Handler for the SaveImage service. Signals that the next frame received by the subscription
- * shall be saved to a file
- * Returns an error if we're already queued to record an image but haven't actually saved it yet
+ * Handler for the SaveImage action. Delays the specified number of seconds and then flags that the next frame
+ * should be captured and saved to a file
  */
-bool VideoRecorderNode::saveImageHandler(
-  SaveImage::Request &req,
-  SaveImage::Response &res)
+void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoalConstPtr& goal)
 {
-  bool ok = true;
   if (!capture_next_frame_)
   {
     // First figure out the full path of the .avi file we're saving
     std::stringstream ss;
     ss << out_dir_;
-    if (req.filename.length() == 0)
+    if (goal.filename.length() == 0)
     {
       ss << defaultFilename("png");
     }
     else
     {
-      ss << req.filename;
+      ss << goal.filename;
       // if the user specified a file extension, try to use that if we know what it is
       // otherwise use .png
-      if (!ends_with(req.filename, ".bmp") &&
-          !ends_with(req.filename, ".jpg") &&
-          !ends_with(req.filename, ".jpeg") &&
-          !ends_with(req.filename, ".png")
+      if (!ends_with(goal.filename, ".bmp") &&
+          !ends_with(goal.filename, ".jpg") &&
+          !ends_with(goal.filename, ".jpeg") &&
+          !ends_with(goal.filename, ".png")
           // TODO: any more common formats we want to be able to support?
       )
       {
@@ -237,25 +238,26 @@ bool VideoRecorderNode::saveImageHandler(
     }
     ss >> image_path_;
 
-    std::chrono::duration<unsigned long, std::ratio<1> > delay = std::chrono::seconds(req.delay);
-    photo_trigger_time_ = std::chrono::system_clock::now() + delay;
-    capture_next_frame_ = true;
+    ros::Rate r(1);
+    unsigned long time_remaining = goal.delay;
     ROS_INFO("Saving image in %d seconds to %s", req.delay, image_path_.c_str());
     res.path = image_path_;
 
-    // block returning from the service until the image has been saved
-    while (capture_next_frame_)
+    video_recorder_msgs::SaveImageFeedback feedback();
+    while (time_remaining > 0)
     {
-      std::this_thread::sleep_for (std::chrono::seconds(1));
+      feedback.time_remaining = time_remaining;
+      frame_service_.publishFeedback(feedback);
+      r.sleep();
     }
+    capture_next_frame_ = true;
   }
   else
   {
     ROS_WARN("Already queued to record the next frame");
-    ok = false;
-    res.path = "";
+    video_recorder_msgs::SaveImageResult result();
+    frame_service_.setAborted(result, "SaveImage has already been requested");
   }
-  return ok;
 }
 
 /*!
@@ -279,7 +281,7 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
       appendFrame(m);
     }
 
-    if (capture_next_frame_ && (std::chrono::system_clock::now() - photo_trigger_time_) >= std::chrono::seconds(0))
+    if (capture_next_frame_)
     {
       saveImage(m);
     }
@@ -343,6 +345,10 @@ void VideoRecorderNode::saveImage(const cv::Mat &img)
 {
   capture_next_frame_ = false;
   cv::imwrite(image_path_, img);
+
+  video_recorder_msgs::SaveImageResult result;
+  result.path = image_path_;
+  frame_service_.setSucceeded(result);
 }
 
 /*!
