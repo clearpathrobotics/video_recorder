@@ -6,16 +6,19 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   roscpp
   image_transport
+  actionlib
+  actionlib_msgs
   video_recorder_msgs
 )
 find_package(OpenCV 4 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
-catkin_package()
+catkin_package(CATKIN_DEPENDS actionlib actionlib_msgs video_recorder_msgs)
 
 add_executable(video_recorder_node src/video_recorder_node.cpp)
 target_link_libraries(video_recorder_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

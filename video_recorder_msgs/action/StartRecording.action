@@ -3,4 +3,6 @@ uint64 duration
 ---
 string path
 ---
+uint32 time_elapsed
 uint32 time_remaining
+uint32 n_frames

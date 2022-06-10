@@ -44,18 +44,62 @@ static inline bool ends_with(std::string const & value, std::string const & endi
 }
 
 /*!
+ * Resize a mat and apply letterbox/pillarbox lines to preserve the aspect ratio
+ *
+ * \param src  The image we're going to resize
+ * \param dst  The image we're writing to. This image must be initialized to a black image of the correct size and type
+ */
+static void letterbox_or_pillarbox(const cv::Mat &src, cv::Mat &dst)
+{
+  double src_aspect = (double)src.cols / (double)src.rows;
+  double dst_aspect = (double)dst.cols / (double)dst.rows;
+  double scale;
+  cv::Rect roi;
+
+  if (src_aspect > dst_aspect)
+  {
+    // src is wider than dst -- dst must be letterboxed
+    scale = (double)src.rows / (double)dst.rows;
+    roi.width = dst.cols;
+    roi.x = 0;
+    roi.height = dst.rows * scale;
+    roi.y = (dst.rows - roi.height) / 2;
+  }
+  else if (src_aspect < dst_aspect)
+  {
+    // src is narrower than dst -- dst must be pillarboxed
+    scale = (double)src.cols / (double)dst.cols;
+    roi.width = dst.rows * scale;
+    roi.x = (dst.cols - roi.width) / 2;
+    roi.height = dst.rows;
+    roi.y = 0;
+  }
+  else
+  {
+    // same aspect; no bars needed
+    scale = (double)src.cols / (double)dst.cols;
+    roi.width = dst.cols;
+    roi.x = 0;
+    roi.height = dst.rows;
+    roi.y = 0;
+  }
+
+  cv::resize(src, dst(roi), roi.size());
+}
+
+/*!
  * Creates the start/stop services, loads the ROS parameters, subscribes to the input topic
  */
 VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
   nh_(nh),
   frame_service_(nh, "save_image", boost::bind(&VideoRecorderNode::saveImageHandler, this, _1), false),
   start_service_(nh, "start_recording", boost::bind(&VideoRecorderNode::startRecordingHandler, this, _1), false),
-  stop_service_(nh, "stop_recording", boost::bind(&VideoRecorderNode::stopRecordingHandler, this, _1), false),
-  vout_(NULL),
-  capture_next_frame_(false)
+  stop_service_(nh, "stop_recording", boost::bind(&VideoRecorderNode::stopRecordingHandler, this, _1), false)
 {
   is_recording_ = std_msgs::Bool();
   is_recording_.data = false;
+  capture_next_frame_ = false;
+  vout_ = NULL;
 
   pthread_mutex_init(&video_recording_lock_, NULL);
 
@@ -85,6 +129,8 @@ void VideoRecorderNode::loadParams()
   nh_.param<std::string>("topic", img_topic_, "/camera/image_raw");
   nh_.param<std::string>("out_dir", out_dir_, "/tmp");
   nh_.param<double>("fps", fps_, 30.0);
+  nh_.param<int>("output_height", output_height_, 480);
+  nh_.param<int>("output_width", output_width_, 640);
 
   if (out_dir_[out_dir_.length()-1] != '/')
   {
@@ -118,92 +164,103 @@ std::string VideoRecorderNode::defaultFilename(std::string extension)
  * Handler for the StartRecording service.  Initializes the cv::VideoWriter instance, sets is_recording_ to true,
  * saves the start time of the recording.
  * Will return an error if we are already recording video
+ *
+ * \param goal  The action goal we've received
  */
-bool VideoRecorderNode::startRecordingHandler(
-  StartRecording::Request &req,
-  StartRecording::Response &res)
+void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRecordingGoalConstPtr& goal)
 {
-  // Because initializing the video recording is a relatively lengthy operation
-  // it's theoretically possible for the user to invoke the service multiple times before we're ready.
-  // Therefore use a mutex to ensure we only create one file at a time; otherwise we might introduce
-  // a memory leak.
-  pthread_mutex_lock(&video_recording_lock_);
-
-  bool ok = true;
+  video_recorder_msgs::StartRecordingResult result;
   if (!is_recording_.data)
   {
     // First figure out the full path of the .avi file we're saving
     std::stringstream ss;
     ss << out_dir_;
-    if (req.filename.length() == 0)
+    if (goal->filename.length() == 0)
     {
       ss << defaultFilename("avi");
     }
     else
     {
-      ss << req.filename;
-      if (!ends_with(req.filename, ".avi"))
+      ss << goal->filename;
+      if (!ends_with(goal->filename, ".avi"))
       {
         ss << ".avi";
       }
     }
     ss >> video_path_;
 
+    // create the video_writer
+    ROS_INFO("Recording to %s for %d seconds (0=inf)", video_path_.c_str(), (int)goal->duration);
+    pthread_mutex_lock(&video_recording_lock_);
     // record the start time of the recording and max duration
-    max_video_duration_ = std::chrono::seconds(req.duration);
+    max_video_duration_ = std::chrono::seconds(goal->duration);
     video_start_time_ = std::chrono::system_clock::now();
-
-    // we're ready! signal that we're recording so the image subscriber can start recording frames
+    n_frames_ = 0;
+    vout_ = createVideoWriter();
     is_recording_.data = true;
-    ROS_INFO("Recording to %s", video_path_.c_str());
-    res.path = video_path_;
+    pthread_mutex_unlock(&video_recording_lock_);
+
+    // publish feedback while we're recording if we specified a duration
+    ros::Rate rate(10);
+    video_recorder_msgs::StartRecordingFeedback feedback;
+    while (is_recording_.data && goal->duration > 0)
+    {
+      auto now = std::chrono::system_clock::now();
+      auto elapsed = now - video_start_time_;
+      auto remaining = max_video_duration_ - elapsed;
+
+      feedback.time_elapsed = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+      feedback.time_remaining = std::chrono::duration_cast<std::chrono::seconds>(remaining).count();;
+      feedback.n_frames = n_frames_;
+
+      start_service_.publishFeedback(feedback);
+      rate.sleep();
+    }
+
+    // return the result
+    result.path = video_path_;
+    start_service_.setSucceeded(result);
   }
   else
   {
     ROS_WARN("Unable to start recording; node is already recording to %s", video_path_.c_str());
-    res.path = "";
-    ok = false;
+    start_service_.setAborted(result, "Unable to start recording; node is already recording");
   }
-
-  pthread_mutex_unlock(&video_recording_lock_);
-  return ok;
 }
 
 /*!
  * Handler for the StopRecording service. Stops any video recording in process, even if
  * we have not yet reached the duration specified in the argument to StartRecordingHandler.
- * Returns an error if there is no recording to stop.
  */
-bool VideoRecorderNode::stopRecordingHandler(
-  StopRecording::Request &req,
-  StopRecording::Response &res)
+void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopRecordingGoalConstPtr &goal)
 {
-  pthread_mutex_lock(&video_recording_lock_);
-
+  video_recorder_msgs::StopRecordingResult result;
   if (is_recording_.data)
   {
     ROS_INFO("Stopping recording to to %s", video_path_.c_str());
 
+    pthread_mutex_lock(&video_recording_lock_);
     stopRecording();
+    pthread_mutex_unlock(&video_recording_lock_);
+
 
     // calculate the total recording time in seconds
     auto stop_time = std::chrono::system_clock::now();
     auto elapsed = stop_time - video_start_time_;
     unsigned long seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
-    res.duration = seconds;
-    res.path = video_path_;
-    res.size = filesize(video_path_);
+    result.duration = seconds;
+    result.path = video_path_;
+    result.size = filesize(video_path_);
+    stop_service_.setSucceeded(result);
   }
   else
   {
-    ROS_WARN("Unable to stop recording; node is not recording yet");
-    res.path = "";
-    res.size = 0;
+    ROS_WARN("Unable to stop recording; node is not recording");
+    result.path = "";
+    result.size = 0;
+    stop_service_.setAborted(result, "Unable to stop recording; node is not recording");
   }
-
-  pthread_mutex_unlock(&video_recording_lock_);
-  return res.size > 0;
 }
 
 /*!
@@ -212,24 +269,25 @@ bool VideoRecorderNode::stopRecordingHandler(
  */
 void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoalConstPtr& goal)
 {
+  video_recorder_msgs::SaveImageResult result;
   if (!capture_next_frame_)
   {
     // First figure out the full path of the .avi file we're saving
     std::stringstream ss;
     ss << out_dir_;
-    if (goal.filename.length() == 0)
+    if (goal->filename.length() == 0)
     {
       ss << defaultFilename("png");
     }
     else
     {
-      ss << goal.filename;
+      ss << goal->filename;
       // if the user specified a file extension, try to use that if we know what it is
       // otherwise use .png
-      if (!ends_with(goal.filename, ".bmp") &&
-          !ends_with(goal.filename, ".jpg") &&
-          !ends_with(goal.filename, ".jpeg") &&
-          !ends_with(goal.filename, ".png")
+      if (!ends_with(goal->filename, ".bmp") &&
+          !ends_with(goal->filename, ".jpg") &&
+          !ends_with(goal->filename, ".jpeg") &&
+          !ends_with(goal->filename, ".png")
           // TODO: any more common formats we want to be able to support?
       )
       {
@@ -239,23 +297,29 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
     ss >> image_path_;
 
     ros::Rate r(1);
-    unsigned long time_remaining = goal.delay;
-    ROS_INFO("Saving image in %d seconds to %s", req.delay, image_path_.c_str());
-    res.path = image_path_;
+    unsigned long time_remaining = goal->delay;
+    ROS_INFO("Saving image in %d seconds to %s", goal->delay, image_path_.c_str());
 
-    video_recorder_msgs::SaveImageFeedback feedback();
-    while (time_remaining > 0)
+    video_recorder_msgs::SaveImageFeedback feedback;
+    for(unsigned long i=0; i<time_remaining; i++)
     {
-      feedback.time_remaining = time_remaining;
+      feedback.time_remaining = time_remaining-i;
       frame_service_.publishFeedback(feedback);
       r.sleep();
     }
+    image_saved_ = false;
     capture_next_frame_ = true;
+
+    while (!image_saved_)
+      r.sleep();
+
+    result.path = image_path_;
+    frame_service_.setSucceeded(result);
   }
   else
   {
     ROS_WARN("Already queued to record the next frame");
-    video_recorder_msgs::SaveImageResult result();
+    result.path = image_path_;
     frame_service_.setAborted(result, "SaveImage has already been requested");
   }
 }
@@ -296,21 +360,19 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
  * frame of every video we create.
  * The created object is destroyed when we call stopRecording()
  */
-cv::VideoWriter *VideoRecorderNode::createVideoWriter(const int width, const int height)
+cv::VideoWriter *VideoRecorderNode::createVideoWriter()
 {
-  return new cv::VideoWriter(video_path_, cv::VideoWriter::fourcc('X', 'V', 'I', 'D'), fps_, cv::Size(width, height), true);
+  return new cv::VideoWriter(video_path_, cv::VideoWriter::fourcc('X', 'V', 'I', 'D'), fps_,
+                             cv::Size(output_width_, output_height_), true);
 }
 
 void VideoRecorderNode::appendFrame(const cv::Mat &img)
 {
+  cv::Mat resized = cv::Mat::zeros(output_height_, output_width_, CV_8UC3);
+  letterbox_or_pillarbox(img, resized);
   pthread_mutex_lock(&video_recording_lock_);
-  // create the cv::VideoWriter instance if we need to
-  if (vout_ == NULL)
-  {
-    vout_ = createVideoWriter(img.cols, img.rows);
-  }
-
-  *(vout_) << img;
+  *(vout_) << resized;
+  n_frames_++;
 
   // check if we should stop recording
   if (max_video_duration_ > std::chrono::seconds(0))
@@ -345,10 +407,7 @@ void VideoRecorderNode::saveImage(const cv::Mat &img)
 {
   capture_next_frame_ = false;
   cv::imwrite(image_path_, img);
-
-  video_recorder_msgs::SaveImageResult result;
-  result.path = image_path_;
-  frame_service_.setSucceeded(result);
+  image_saved_ = true;
 }
 
 /*!

@@ -46,6 +46,8 @@ namespace video_recorder
     std::string img_topic_;
     std::string out_dir_;
     double fps_;
+    int output_height_;
+    int output_width_;
 
     // Thread control
     pthread_mutex_t video_recording_lock_;
@@ -58,16 +60,18 @@ namespace video_recorder
 
     // Video capture
     std_msgs::Bool is_recording_;
+    unsigned long n_frames_;
     std::chrono::duration<unsigned long, std::ratio<1> > max_video_duration_;
     std::chrono::time_point<std::chrono::system_clock> video_start_time_;
     std::string video_path_;
     cv::VideoWriter *vout_;
-    cv::VideoWriter *createVideoWriter(const int width, const int height);
+    cv::VideoWriter *createVideoWriter();
     void appendFrame(const cv::Mat &img);
     void stopRecording();
 
     // Still image capture
     bool capture_next_frame_;
+    bool image_saved_;
     std::string image_path_;
     void saveImage(const cv::Mat &img);
 

@@ -1,14 +1,18 @@
 <?xml version="1.0" ?>
 <launch>
-  <arg name="fps"      default="30" />
-  <arg name="out_dir"  default="$(optenv HOME /tmp)" />
-  <arg name="topic"    default="/camera/image_raw" />
+  <arg name="fps"          default="30" />
+  <arg name="out_dir"      default="$(optenv HOME /tmp)" />
+  <arg name="topic"        default="/camera/image_raw" />
+  <arg name="video_height" default="480" />
+  <arg name="video_width"  default="640" />
 
   <group ns="$(arg topic)">
     <node pkg="video_recorder" type="video_recorder_node" name="capture">
-      <param name="fps"        value="$(arg fps)" />
-      <param name="out_dir"    value="$(arg out_dir)" />
-      <param name="topic"      value="$(arg topic)" />
+      <param name="fps"           value="$(arg fps)" />
+      <param name="out_dir"       value="$(arg out_dir)" />
+      <param name="topic"         value="$(arg topic)" />
+      <param name="output_height" value="$(arg video_height)" />
+      <param name="output_width"  value="$(arg video_width)" />
     </node>
   </group>
 </launch>
