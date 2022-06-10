@@ -59,18 +59,18 @@ static void letterbox_or_pillarbox(const cv::Mat &src, cv::Mat &dst)
   if (src_aspect > dst_aspect)
   {
     // src is wider than dst -- dst must be letterboxed
-    scale = (double)src.rows / (double)dst.rows;
+    scale = (double)src.cols / (double)dst.cols;
     roi.width = dst.cols;
     roi.x = 0;
-    roi.height = dst.rows * scale;
+    roi.height = src.rows / scale;
     roi.y = (dst.rows - roi.height) / 2;
   }
   else if (src_aspect < dst_aspect)
   {
     // src is narrower than dst -- dst must be pillarboxed
-    scale = (double)src.cols / (double)dst.cols;
-    roi.width = dst.rows * scale;
-    roi.x = (dst.cols - roi.width) / 2;
+    scale = (double)src.rows / (double)dst.rows;
+    roi.width = src.cols / scale;
+    roi.x = (dst.cols - roi.width) /2;
     roi.height = dst.rows;
     roi.y = 0;
   }
