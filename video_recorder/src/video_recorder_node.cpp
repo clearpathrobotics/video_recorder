@@ -105,8 +105,14 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
 
   // the topic we subscribe to is defined as a parameter
   loadParams();
+
   is_recording_pub_ = nh.advertise<std_msgs::Bool>("is_recording", 1);
-  img_sub_ = nh.subscribe(img_topic_, 1, &VideoRecorderNode::imageCallback, this);
+
+  // subscribe to either the raw sensor_msgs/Image or sensor_msgs/CompressedImage topic as needed
+  if (!compressed_)
+    img_sub_ = nh.subscribe(img_topic_, 1, &VideoRecorderNode::imageCallback, this);
+  else
+    img_sub_ = nh.subscribe(img_topic_, 1, &VideoRecorderNode::compressedImageCallback, this);
 
   frame_service_.start();
   start_service_.start();
@@ -131,6 +137,7 @@ void VideoRecorderNode::loadParams()
   nh_.param<double>("fps", fps_, 30.0);
   nh_.param<int>("output_height", output_height_, 480);
   nh_.param<int>("output_width", output_width_, 640);
+  nh_.param<bool>("compressed", compressed_, false);
 
   if (out_dir_[out_dir_.length()-1] != '/')
   {
@@ -348,6 +355,28 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
     if(!conversion_ok)
       return;
 
+    if (is_recording_.data)
+    {
+      appendFrame(m);
+    }
+
+    if (capture_next_frame_)
+    {
+      saveImage(m);
+    }
+  }
+
+  is_recording_pub_.publish(is_recording_);
+}
+
+/*!
+ * Subscription to the compressed image topic, used when ~compressed is true.
+ */
+void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedImage &img)
+{
+  if (is_recording_.data || capture_next_frame_)
+  {
+    cv::Mat m = cv::imdecode(img.data, cv::IMREAD_UNCHANGED);
     if (is_recording_.data)
     {
       appendFrame(m);

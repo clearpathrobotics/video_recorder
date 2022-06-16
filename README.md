@@ -29,6 +29,14 @@ why the default is `/tmp`.
 The video file always uses OpenCV's `8UC3` matrix type in `BGR` format, regardless of the stream source's encoding.
 
 
+Compressed Images
+-------------------
+
+If your camera only publishes `sensor_msgs/CompressedImage` data, or you have to use compressed images because of
+bandwidth limitations, you can set the `~compressed` parameter to `true`.  This will force the node to subscribe to
+compressed images instead of the default `sensor_msgs/Image` data.
+
+
 Action Namespace
 ------------------
 

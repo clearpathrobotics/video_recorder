@@ -7,6 +7,7 @@
 
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
+#include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Bool.h>
 #include <video_recorder_msgs/SaveImageAction.h>
@@ -48,6 +49,7 @@ namespace video_recorder
     double fps_;
     int output_height_;
     int output_width_;
+    bool compressed_;
 
     // Thread control
     pthread_mutex_t video_recording_lock_;
@@ -57,6 +59,7 @@ namespace video_recorder
     void startRecordingHandler(const video_recorder_msgs::StartRecordingGoalConstPtr& goal);
     void stopRecordingHandler(const video_recorder_msgs::StopRecordingGoalConstPtr& goal);
     void imageCallback(const sensor_msgs::Image &img);
+    void compressedImageCallback(const sensor_msgs::CompressedImage &img);
 
     // Video capture
     std_msgs::Bool is_recording_;
