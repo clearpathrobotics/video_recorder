@@ -1,6 +1,7 @@
 string filename
 uint32 delay
 ---
+bool success
 string path
 ---
 uint32 time_remaining

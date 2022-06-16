@@ -57,6 +57,7 @@ SaveImage.action
 string filename
 uint64 duration
 ---
+bool success
 string path
 ---
 uint32 time_elapsed
@@ -91,6 +92,7 @@ StopRecording.action
 ```
 bool arg
 ---
+bool success
 string path
 uint64 size
 uint64 duration
@@ -119,6 +121,7 @@ SaveImage.action
 string filename
 uint32 delay
 ---
+bool success
 string path
 ---
 uint32 time_remaining

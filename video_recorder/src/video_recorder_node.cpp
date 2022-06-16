@@ -219,11 +219,14 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
 
     // return the result
     result.path = video_path_;
+    result.success = true;
     start_service_.setSucceeded(result);
   }
   else
   {
     ROS_WARN("Unable to start recording; node is already recording to %s", video_path_.c_str());
+    result.path = "";
+    result.success = false;
     start_service_.setAborted(result, "Unable to start recording; node is already recording");
   }
 }
@@ -252,13 +255,16 @@ void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopReco
     result.duration = seconds;
     result.path = video_path_;
     result.size = filesize(video_path_);
+    result.success = true;
     stop_service_.setSucceeded(result);
   }
   else
   {
     ROS_WARN("Unable to stop recording; node is not recording");
+    result.duration = 0;
     result.path = "";
     result.size = 0;
+    result.success = false;
     stop_service_.setAborted(result, "Unable to stop recording; node is not recording");
   }
 }
@@ -314,12 +320,14 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
       r.sleep();
 
     result.path = image_path_;
+    result.success = true;
     frame_service_.setSucceeded(result);
   }
   else
   {
     ROS_WARN("Already queued to record the next frame");
-    result.path = image_path_;
+    result.path = "";
+    result.success = false;
     frame_service_.setAborted(result, "SaveImage has already been requested");
   }
 }
