@@ -355,37 +355,36 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
     if(!conversion_ok)
       return;
 
-    if (is_recording_.data)
-    {
-      appendFrame(m);
-    }
-
-    if (capture_next_frame_)
-    {
-      saveImage(m);
-    }
+    processImage(m);
   }
-
-  is_recording_pub_.publish(is_recording_);
 }
 
 /*!
  * Subscription to the compressed image topic, used when ~compressed is true.
+ * We only bother processing the frame if we're going to write it to the video or image files
  */
 void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedImage &img)
 {
   if (is_recording_.data || capture_next_frame_)
   {
     cv::Mat m = cv::imdecode(img.data, cv::IMREAD_UNCHANGED);
-    if (is_recording_.data)
-    {
-      appendFrame(m);
-    }
+    processImage(m);
+  }
+}
 
-    if (capture_next_frame_)
-    {
-      saveImage(m);
-    }
+/*!
+ * Backend for imageCallback and compressedImageCallback to reduce duplication
+ */
+void VideoRecorderNode::processImage(const cv::Mat &m)
+{
+  if (is_recording_.data)
+  {
+    appendFrame(m);
+  }
+
+  if (capture_next_frame_)
+  {
+    saveImage(m);
   }
 
   is_recording_pub_.publish(is_recording_);

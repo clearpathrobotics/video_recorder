@@ -60,6 +60,7 @@ namespace video_recorder
     void stopRecordingHandler(const video_recorder_msgs::StopRecordingGoalConstPtr& goal);
     void imageCallback(const sensor_msgs::Image &img);
     void compressedImageCallback(const sensor_msgs::CompressedImage &img);
+    void processImage(const cv::Mat &m);
 
     // Video capture
     std_msgs::Bool is_recording_;
