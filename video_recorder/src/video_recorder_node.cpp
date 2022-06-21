@@ -198,6 +198,7 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     n_frames_ = 0;
     vout_ = createVideoWriter();
     is_recording_.data = true;
+    is_recording_pub_.publish(is_recording_);
     pthread_mutex_unlock(&video_recording_lock_);
 
     // publish feedback while we're recording if we specified a duration
@@ -403,6 +404,7 @@ void VideoRecorderNode::appendFrame(const cv::Mat &img)
 void VideoRecorderNode::stopRecording()
 {
   is_recording_.data = false;
+  is_recording_pub_.publish(is_recording_);
   if (vout_ != NULL)
   {
     vout_->release();
