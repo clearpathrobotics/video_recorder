@@ -101,12 +101,17 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
   capture_next_frame_ = false;
   vout_ = NULL;
 
+  status_.status = 0x00;
+  status_.frames_received_last_second = 0;
+  status_.frames_processed_last_second = 0;
+
   pthread_mutex_init(&video_recording_lock_, NULL);
 
   // the topic we subscribe to is defined as a parameter
   loadParams();
 
   is_recording_pub_ = nh.advertise<std_msgs::Bool>("is_recording", 1);
+  status_pub_ = nh.advertise<video_recorder_msgs::Status>("status", 1);
 
   // subscribe to either the raw sensor_msgs/Image or sensor_msgs/CompressedImage topic as needed
   if (!compressed_)
@@ -117,6 +122,8 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
   frame_service_.start();
   start_service_.start();
   stop_service_.start();
+
+  pthread_create(&status_thread_, NULL, &statusPublisher, this);
 }
 
 /*!
@@ -125,6 +132,7 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
 VideoRecorderNode::~VideoRecorderNode()
 {
   stopRecording();
+  pthread_join(status_thread_, NULL);
 }
 
 /*!
@@ -143,6 +151,36 @@ void VideoRecorderNode::loadParams()
   {
     out_dir_.push_back('/');
   }
+}
+
+/*!
+ * Publish the state of the node at a rate of 1Hz
+ */
+void *VideoRecorderNode::statusPublisher(void *arg)
+{
+  VideoRecorderNode *node = (VideoRecorderNode*)arg;
+
+  node->status_.status = video_recorder_msgs::Status::WAITING;
+
+  ros::Rate rate(1);
+  while (ros::ok())
+  {
+    rate.sleep();
+
+    // Check if we're recording and set the flag accordingly
+    // The photo-timer flag is set inside the save_image action handler
+    if (node->is_recording_.data)
+      node->status_.status |= video_recorder_msgs::Status::RECORDING;
+    else
+      node->status_.status &= ~video_recorder_msgs::Status::RECORDING;
+
+    // Publish and reset the counters
+    node->status_pub_.publish(node->status_);
+    node->status_.frames_received_last_second = 0;
+    node->status_.frames_processed_last_second = 0;
+  }
+
+  return NULL;
 }
 
 /*!
@@ -177,7 +215,14 @@ std::string VideoRecorderNode::defaultFilename(std::string extension)
 void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRecordingGoalConstPtr& goal)
 {
   video_recorder_msgs::StartRecordingResult result;
-  if (!is_recording_.data)
+  if (!(status_.status & video_recorder_msgs::Status::RUNNING))
+  {
+    ROS_WARN("Unable to start recording; no data received from the camera yet");
+    result.path = "";
+    result.success = false;
+    start_service_.setAborted(result, "Unable to start recording; no data received yet");
+  }
+  else if (!is_recording_.data)
   {
     // First figure out the full path of the .avi file we're saving
     std::stringstream ss;
@@ -283,7 +328,14 @@ void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopReco
 void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoalConstPtr& goal)
 {
   video_recorder_msgs::SaveImageResult result;
-  if (!capture_next_frame_)
+  if (!(status_.status & video_recorder_msgs::Status::RUNNING))
+  {
+    ROS_WARN("Unable to save image; no data received from the camera yet");
+    result.path = "";
+    result.success = false;
+    frame_service_.setAborted(result, "Unable to save image; no data received yet");
+  }
+  else if (!capture_next_frame_)
   {
     // First figure out the full path of the .avi file we're saving
     std::stringstream ss;
@@ -318,6 +370,7 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
     {
       feedback.time_remaining = time_remaining-i;
       frame_service_.publishFeedback(feedback);
+      status_.status |= video_recorder_msgs::Status::PHOTO_TIMER;
       r.sleep();
     }
     image_saved_ = false;
@@ -329,6 +382,7 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
     result.path = image_path_;
     result.success = true;
     frame_service_.setSucceeded(result);
+    status_.status &= ~video_recorder_msgs::Status::PHOTO_TIMER;
   }
   else
   {
@@ -346,6 +400,11 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
  */
 void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
 {
+  // clear the waiting flag, set the running flag, increment the frames received
+  status_.status &= ~video_recorder_msgs::Status::WAITING;
+  status_.status |= video_recorder_msgs::Status::RUNNING;
+  status_.frames_received_last_second++;
+
   if (is_recording_.data || capture_next_frame_)
   {
     cv::Mat m;
@@ -366,6 +425,11 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
  */
 void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedImage &img)
 {
+  // clear the waiting flag, set the running flag, increment the frames received
+  status_.status &= ~video_recorder_msgs::Status::WAITING;
+  status_.status |= video_recorder_msgs::Status::RUNNING;
+  status_.frames_received_last_second++;
+
   if (is_recording_.data || capture_next_frame_)
   {
     cv::Mat m = cv::imdecode(img.data, cv::IMREAD_UNCHANGED);
@@ -379,6 +443,7 @@ void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedIma
  */
 void VideoRecorderNode::processImage(const cv::Mat &m)
 {
+  status_.frames_processed_last_second++;
   if (is_recording_.data)
   {
     appendFrame(m);

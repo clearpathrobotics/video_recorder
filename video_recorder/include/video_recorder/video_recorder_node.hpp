@@ -13,6 +13,7 @@
 #include <video_recorder_msgs/SaveImageAction.h>
 #include <video_recorder_msgs/StartRecordingAction.h>
 #include <video_recorder_msgs/StopRecordingAction.h>
+#include <video_recorder_msgs/Status.h>
 
 typedef actionlib::SimpleActionServer<video_recorder_msgs::SaveImageAction> SaveImageActionServer;
 typedef actionlib::SimpleActionServer<video_recorder_msgs::StartRecordingAction> StartRecordingActionServer;
@@ -53,6 +54,13 @@ namespace video_recorder
 
     // Thread control
     pthread_mutex_t video_recording_lock_;
+
+    // 1Hz background thread that reports the node's status
+    pthread_t status_thread_;
+    ros::Publisher status_pub_;
+    video_recorder_msgs::Status status_;
+    static void *statusPublisher(void *arg);
+
 
     // Service & subscription callbacks
     void saveImageHandler(const video_recorder_msgs::SaveImageGoalConstPtr& goal);

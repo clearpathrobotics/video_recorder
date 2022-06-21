@@ -15,6 +15,7 @@
   <depend>actionlib</depend>
   <depend>actionlib_msgs</depend>
   <depend>genmsg</depend>
+  <depend>std_msgs</depend>
 
   <export>
   </export>
