@@ -60,7 +60,7 @@ This will result in the following action namespaces:
 Recording Videos
 ------------------
 
-SaveImage.action
+StartRecording.action
 ```
 string filename
 uint64 duration
@@ -152,3 +152,47 @@ returns the result.
 
 Note that unlike videos, the size of the images saved is always the same as the published image topic.  No resizing,
 letterboxing, nor pillarboxing is applied.
+
+
+Is-Recording Indicator
+-----------------------
+
+The `video_recorder_node` publishes an `is_recording` topic which indicates whether or not video is currently being
+recorded.  This topic publishes true/false at a rate equal to the FPS of the camera, as long as the node's status
+is `>=2` (see below for status messages).  When the node is in the `WAITING` (1) status the `is_recording` topic is
+not published.
+
+
+Status
+-------
+
+The `video_recorder_node` also publishes its internal status at a rate of 1Hz on the `status` topic.
+
+Status.msg
+```
+uint8 status
+uint32 frames_received_last_second
+uint32 frames_processed_last_second
+
+```
+
+The `status` field is a bit-field with the following meanings:
+- 0-bit: Indicates that the node is waiting to receive data from the camera. Recording videos/saving images cannot be done
+  in this state
+- 1-bit: The node has received at least 1 frame from the camera and is running normally
+- 2-bit: The node is currently recording video
+- 4-bit: The node is running a countdown timer to save a single image
+
+e.g.
+A status of `0b00000010 = 2` indicates that the node is running normally, but is not recording.
+
+e.g.
+A status of `0b00000110 = 6` indicates that the node is running normally and recording video.
+
+e.g.
+A status of `0b00000001 = 1` indicates that the node is waiting to receive camera data
+
+The `frames_received_last_second` and `frames_processed_last_second` indicate the number of raw frames received
+from the camera in the last 1s of real-time and the number of frames written to video/image files.  Under normal
+conditions, `frames_received_last_second` should be equal to the FPS of the camera.  When recording,
+`frames_processed_last_second` should also match the camera's FPS.
