@@ -41,20 +41,18 @@ Action Namespace
 ------------------
 
 The `video_recorder_node` used `actionlib` to provide actions to save images, start, and stop recoridng video.  The
-services are located in the node's namespace.  For clarity we recommend launching the node in the same namespace
-as the image topic:
+services are located in the image topic's namespace.
 ```xml
-<group ns="/camera/image_raw">
-  <node pkg="video_recorder" type="video_recorder_node" name="capture">
-    <!-- params -->
-  </node>
-</group>
+<node pkg="video_recorder" type="video_recorder_node" name="camera_recorder">
+  <param name="topic" value="/camera/image_raw" />
+  ...
+</node>
 ```
 
 This will result in the following action namespaces:
-- `/camera/image_raw/capture/save_image/`
-- `/camera/image_raw/capture/start_recording/`
-- `/camera/image_raw/capture/stop_recording/`
+- `/camera/image_raw/save_image/`
+- `/camera/image_raw/start_recording/`
+- `/camera/image_raw/stop_recording/`
 
 
 Recording Videos
@@ -166,7 +164,7 @@ not published.
 Status
 -------
 
-The `video_recorder_node` also publishes its internal status at a rate of 1Hz on the `status` topic.
+The `video_recorder_node` also publishes its internal status at a rate of 1Hz on the `recorder_status` topic.
 
 Status.msg
 ```

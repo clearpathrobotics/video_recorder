@@ -21,6 +21,10 @@
 using namespace video_recorder;
 using namespace video_recorder_msgs;
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// HELPER FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /*!
  * Yes, this is a gross C function, but std::filesystem isn't available in C++14
  * and Melodic doesn't support C++17
@@ -87,14 +91,41 @@ static void letterbox_or_pillarbox(const cv::Mat &src, cv::Mat &dst)
   cv::resize(src, dst(roi), roi.size());
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// VideoRecorderNode
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 /*!
  * Creates the start/stop services, loads the ROS parameters, subscribes to the input topic
+ *
+ * \param nh              The NodeHandle for this node
+ * \param img_topic       The image topic to subscribe to. Must be sensor_msgs/Image or sensor_msgs/CompressedImage
+ * \param out_dir         The directory where images and videos are saved
+ * \param fps             The baseline FPS of the camera topic
+ * \param output_height   The height of the recorded video files in pixels
+ * \param output_width    The width of the recorded video files in pixels
+ * \param compressed      Is the image topic a compressed image, or raw image?
  */
-VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
+VideoRecorderNode::VideoRecorderNode(
+  ros::NodeHandle &nh,
+  const std::string &img_topic,
+  const std::string &out_dir,
+  const double fps,
+  const double output_height,
+  const double output_width,
+  const bool compressed
+) :
   nh_(nh),
-  frame_service_(nh, "save_image", boost::bind(&VideoRecorderNode::saveImageHandler, this, _1), false),
-  start_service_(nh, "start_recording", boost::bind(&VideoRecorderNode::startRecordingHandler, this, _1), false),
-  stop_service_(nh, "stop_recording", boost::bind(&VideoRecorderNode::stopRecordingHandler, this, _1), false)
+  img_topic_(img_topic),
+  out_dir_(out_dir),
+  fps_(fps),
+  output_height_(output_height),
+  output_width_(output_width),
+  compressed_(compressed),
+  frame_service_(nh, img_topic + "/save_image",      boost::bind(&VideoRecorderNode::saveImageHandler, this, _1), false),
+  start_service_(nh, img_topic + "/start_recording", boost::bind(&VideoRecorderNode::startRecordingHandler, this, _1), false),
+  stop_service_(nh, img_topic + "/stop_recording",   boost::bind(&VideoRecorderNode::stopRecordingHandler, this, _1), false)
 {
   is_recording_ = std_msgs::Bool();
   is_recording_.data = false;
@@ -107,11 +138,8 @@ VideoRecorderNode::VideoRecorderNode(ros::NodeHandle &nh) :
 
   pthread_mutex_init(&video_recording_lock_, NULL);
 
-  // the topic we subscribe to is defined as a parameter
-  loadParams();
-
-  is_recording_pub_ = nh.advertise<std_msgs::Bool>("is_recording", 1);
-  status_pub_ = nh.advertise<video_recorder_msgs::Status>("status", 1);
+  is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic + "/is_recording", 1);
+  status_pub_ = nh.advertise<video_recorder_msgs::Status>(img_topic + "/recorder_status", 1);
 
   // subscribe to either the raw sensor_msgs/Image or sensor_msgs/CompressedImage topic as needed
   if (!compressed_)
@@ -133,24 +161,6 @@ VideoRecorderNode::~VideoRecorderNode()
 {
   stopRecording();
   pthread_join(status_thread_, NULL);
-}
-
-/*!
- * Loads the necessary ROS parameters needed to finish constructing the node
- */
-void VideoRecorderNode::loadParams()
-{
-  nh_.param<std::string>("topic", img_topic_, "/camera/image_raw");
-  nh_.param<std::string>("out_dir", out_dir_, "/tmp");
-  nh_.param<double>("fps", fps_, 30.0);
-  nh_.param<int>("output_height", output_height_, 480);
-  nh_.param<int>("output_width", output_width_, 640);
-  nh_.param<bool>("compressed", compressed_, false);
-
-  if (out_dir_[out_dir_.length()-1] != '/')
-  {
-    out_dir_.push_back('/');
-  }
 }
 
 /*!
@@ -604,6 +614,10 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
   return frame_ok;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// MAIN
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /*!
  * Create the node and spin. Nothing fancy to see here.
  */
@@ -611,7 +625,27 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "video_recorder_node");
   ros::NodeHandle nh("~");
-  VideoRecorderNode node(nh);
+
+  std::string img_topic;
+  std::string out_dir;
+  double fps;
+  int output_height;
+  int output_width;
+  bool compressed;
+
+  nh.param<std::string>("topic", img_topic, "/camera/image_raw");
+  nh.param<std::string>("out_dir", out_dir, "/tmp");
+  nh.param<double>("fps", fps, 30.0);
+  nh.param<int>("output_height", output_height, 480);
+  nh.param<int>("output_width", output_width, 640);
+  nh.param<bool>("compressed", compressed, false);
+
+  if (out_dir[out_dir.length()-1] != '/')
+  {
+    out_dir.push_back('/');
+  }
+
+  VideoRecorderNode node(nh, img_topic, out_dir, fps, output_height, output_width, compressed);
   ros::spin();
   return 0;
 }

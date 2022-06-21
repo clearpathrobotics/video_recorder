@@ -29,7 +29,13 @@ namespace video_recorder
   class VideoRecorderNode
   {
   public:
-    VideoRecorderNode(ros::NodeHandle &nh);
+    VideoRecorderNode(ros::NodeHandle &nh,
+      const std::string &img_topic,
+      const std::string &out_dir,
+      const double fps,
+      const double output_height,
+      const double output_width,
+      const bool compressed);
     ~VideoRecorderNode();
 
     const bool isRecording(){ return is_recording_.data; }
@@ -44,7 +50,6 @@ namespace video_recorder
     ros::Publisher is_recording_pub_;
 
     // ROS parameters
-    void loadParams();
     std::string img_topic_;
     std::string out_dir_;
     double fps_;
