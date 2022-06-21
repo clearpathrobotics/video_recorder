@@ -357,6 +357,7 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
 
     processImage(m);
   }
+  is_recording_pub_.publish(is_recording_);
 }
 
 /*!
@@ -370,6 +371,7 @@ void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedIma
     cv::Mat m = cv::imdecode(img.data, cv::IMREAD_UNCHANGED);
     processImage(m);
   }
+  is_recording_pub_.publish(is_recording_);
 }
 
 /*!
@@ -386,8 +388,6 @@ void VideoRecorderNode::processImage(const cv::Mat &m)
   {
     saveImage(m);
   }
-
-  is_recording_pub_.publish(is_recording_);
 }
 
 /*!
