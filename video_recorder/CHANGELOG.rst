@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.2 (2022-06-24)
+------------------
 * Add an optional parameter to set a hard maximum duration on videos recorded by the node.
 * Contributors: Chris Iverach-Brereton
 
