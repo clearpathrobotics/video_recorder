@@ -136,6 +136,12 @@ VideoRecorderNode::VideoRecorderNode(
   status_.frames_received_last_second = 0;
   status_.frames_processed_last_second = 0;
 
+  int max_duration_seconds;
+  nh.param<int>("max_duration", max_duration_seconds, 0);
+  if (max_duration_seconds < 0)
+    max_duration_seconds = 0;
+  max_video_duration_ = std::chrono::seconds((unsigned long)max_duration_seconds);
+
   pthread_mutex_init(&video_recording_lock_, NULL);
 
   is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic + "/is_recording", 1);
@@ -255,7 +261,7 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     ROS_INFO("Recording to %s for %d seconds (0=inf)", video_path_.c_str(), (int)goal->duration);
     pthread_mutex_lock(&video_recording_lock_);
     // record the start time of the recording and max duration
-    max_video_duration_ = std::chrono::seconds(goal->duration);
+    desired_video_duration_ = std::chrono::seconds(goal->duration);
     video_start_time_ = std::chrono::system_clock::now();
     n_frames_ = 0;
     vout_ = createVideoWriter();
@@ -269,7 +275,7 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     {
       auto now = std::chrono::system_clock::now();
       auto elapsed = now - video_start_time_;
-      auto remaining = max_video_duration_ - elapsed;
+      auto remaining = desired_video_duration_ - elapsed;
 
       feedback.time_elapsed = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
       feedback.time_remaining = std::chrono::duration_cast<std::chrono::seconds>(remaining).count();;
@@ -486,16 +492,17 @@ void VideoRecorderNode::appendFrame(const cv::Mat &img)
   n_frames_++;
 
   // check if we should stop recording
-  if (max_video_duration_ > std::chrono::seconds(0))
+  auto now = std::chrono::system_clock::now();
+  auto elapsed = now - video_start_time_;
+  if (max_video_duration_ > std::chrono::seconds(0) && elapsed >= max_video_duration_)
   {
-    auto now = std::chrono::system_clock::now();
-    auto elapsed = now - video_start_time_;
-    if (elapsed >= max_video_duration_)
-    {
-      ROS_INFO("User-specified duration elapsed; stopping recording %s", video_path_.c_str());
-
-      stopRecording();
-    }
+    ROS_WARN("Video recording reached hard time limit. Stopping recording %s", video_path_.c_str());
+    stopRecording();
+  }
+  else if (desired_video_duration_ > std::chrono::seconds(0) && elapsed >= desired_video_duration_)
+  {
+    ROS_INFO("User-specified duration elapsed; stopping recording %s", video_path_.c_str());
+    stopRecording();
   }
   pthread_mutex_unlock(&video_recording_lock_);
 }

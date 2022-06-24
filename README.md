@@ -12,12 +12,16 @@ video_recorder_node:
   output_width: 640
   topic: /camera/image_raw
   out_dir: /home/administrator/capture
+  max_duration: 0
 ```
 - `topic` is fairly self-explanatory: this is the ROS topic to subscribe to. Default: `/camera/image_raw`
 - `fps` is the FPS of the output file. This should be set to the same FPS that the camera node publihes at. Default: `30`
 - `output_height` is the frame height of the output video files
 - `output_width` is the frame width of the output video files.
 - `out_dir` is the directory on-disk to save the recorded videos.  The directory must already exist. Default: `/tmp`
+- `max_duration` is the absolute maximum duration of videos recorded by this node in seconds. If it is non-zero
+  videos that reach this duration will be stopped automatically.  This parameter is intended as a safety precaution
+  against users starting a video and forgetting to stop it, and running out of disk space as a result.  Default: `0`
 
 If the aspect ratio of the input images doesn't match the output video, the video will be letterboxed/pillarboxed as
 appropriate.

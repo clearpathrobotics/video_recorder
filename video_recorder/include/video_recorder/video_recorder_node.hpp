@@ -78,6 +78,7 @@ namespace video_recorder
     // Video capture
     std_msgs::Bool is_recording_;
     unsigned long n_frames_;
+    std::chrono::duration<unsigned long, std::ratio<1> > desired_video_duration_;
     std::chrono::duration<unsigned long, std::ratio<1> > max_video_duration_;
     std::chrono::time_point<std::chrono::system_clock> video_start_time_;
     std::string video_path_;
