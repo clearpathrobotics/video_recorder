@@ -31,10 +31,9 @@ using namespace video_recorder_msgs;
  */
 static unsigned long filesize(std::string path)
 {
-  struct stat *buf = (struct stat*)malloc(sizeof(struct stat));
-  stat(path.c_str(), buf);
-  unsigned long size = buf->st_size;
-  free(buf);
+  struct stat buf;
+  stat(path.c_str(), &buf);
+  unsigned long size = buf.st_size;
   return size;
 }
 
@@ -626,6 +625,90 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*!
+ * Checks if a file or directory exists on-disk
+ *
+ * \return  True if the path exists on-disk, otherwise false
+ */
+static bool fileExists(const std::string &path)
+{
+  struct stat buf;
+  return stat(path.c_str(), &buf) == 0;
+}
+
+/*!
+ * Checks if a given path on-disk exists AND is a directory, not a file
+ *
+ * \return True if the path is a directory that exists, otherwise false
+ */
+static bool isDirectory(const std::string &path)
+{
+  struct stat buf;
+  if (stat(path.c_str(), &buf) != 0)
+  {
+    return false;
+  }
+  else if (!(buf.st_mode & S_IFDIR))
+  {
+    return false;
+  }
+  else
+  {
+    return true;
+  }
+}
+
+/*!
+ * Creates the ouput directory on-disk if it doesn't already exist
+ * Exits with code 1 if there is an error creating the drectory for any reason
+ *
+ * \param dir  The output directory to create. May be nested, e.g. /foo/bar/.  Must end with a / character
+ */
+static void createOutputDirectory(const std::string &dir)
+{
+  if (fileExists(dir) && isDirectory(dir))
+  {
+    // everything is ok!
+    ROS_INFO("%s is a valid output directory", dir.c_str());
+  }
+  else if (fileExists(dir) && !isDirectory(dir))
+  {
+    // dir is a file, not a directory; this is an error!
+    ROS_ERROR("%s is a file not a directory!", dir.c_str());
+    exit(1);
+  }
+  else
+  {
+    // the directory doesn't exist! create it
+    //
+    size_t start_at = 1;                // skip the leading /
+    while (start_at < dir.length()-1)
+    {
+      size_t pos = dir.find("/", start_at);
+      std::string substr = dir.substr(0, pos);
+
+      if (fileExists(substr) && !isDirectory(substr))
+      {
+        // we've found a file mid-path!
+        ROS_ERROR("%s is a file, not a directory!", substr.c_str());
+        exit(1);
+      }
+      else if (!isDirectory(substr))
+      {
+        ROS_WARN("Creating %s", substr.c_str());
+        int ret = mkdir(substr.c_str(), 0755);
+        if (ret != 0)
+        {
+          ROS_ERROR("Failed to create directory %s: error %d", substr.c_str(), ret);
+          exit(1);
+        }
+      }
+
+      start_at = pos+1;
+    }
+  }
+}
+
+/*!
  * Create the node and spin. Nothing fancy to see here.
  */
 int main(int argc, char** argv)
@@ -647,10 +730,12 @@ int main(int argc, char** argv)
   nh.param<int>("output_width", output_width, 640);
   nh.param<bool>("compressed", compressed, false);
 
+  // ensure the output directory ends with a / and create it if it doesn't already exist!
   if (out_dir[out_dir.length()-1] != '/')
   {
     out_dir.push_back('/');
   }
+  createOutputDirectory(out_dir);
 
   VideoRecorderNode node(nh, img_topic, out_dir, fps, output_height, output_width, compressed);
   ros::spin();
