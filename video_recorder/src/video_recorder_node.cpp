@@ -270,7 +270,7 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     // publish feedback while we're recording if we specified a duration
     ros::Rate rate(10);
     video_recorder_msgs::StartRecordingFeedback feedback;
-    while (is_recording_.data && goal->duration > 0)
+    while (is_recording_.data && goal->duration > 0 && !start_service_.isPreemptRequested())
     {
       auto now = std::chrono::system_clock::now();
       auto elapsed = now - video_start_time_;
@@ -282,6 +282,15 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
 
       start_service_.publishFeedback(feedback);
       rate.sleep();
+    }
+
+    if (start_service_.isPreemptRequested())
+    {
+      ROS_WARN("Recording cancelled!");
+      stopRecording();
+      result.path = video_path_;
+      result.success = false;
+      start_service_.setAborted(result, "User cancelled fixed-duration video");
     }
 
     // return the result
