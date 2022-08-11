@@ -199,3 +199,120 @@ The `frames_received_last_second` and `frames_processed_last_second` indicate th
 from the camera in the last 1s of real-time and the number of frames written to video/image files.  Under normal
 conditions, `frames_received_last_second` should be equal to the FPS of the camera.  When recording,
 `frames_processed_last_second` should also match the camera's FPS.
+
+
+
+audio_recorder
+=================
+
+This package contains the `audio_recorder_node`, which can be used to record a `.wav` file from an ALSA-compatible
+input device.  This replicates some of the behaviour of packages found in `audio_common`, but wraps the functionality
+in an `actionlib` server to make it compatible with Clearpath's GPS Navigation and IndoorNav software stacks.
+
+The node's configuration is done via `rosparams`:
+```yaml
+audio_recorder_node:
+  out_dir: /home/administrator/capture
+  card: 0
+  device: 0
+  bitrate: 44100
+  channels: 1
+```
+- `out_dir` is the directory on-disk to save the recorded files.  The directory is not created if it doesn't already
+  exist on the disk. Default: `/tmp`
+- `card` and `device` form part of the ALSA hardware device identifier.  For example, if `arecord -l` shows
+  `card 1: U0x46d0x825 [USB Device 0x46d:0x825], device 0: USB Audio [USB Audio]` then use `card: 1` and
+  `device: 0`.
+- `bitrate` is the bitrate for ALSA to record audio from the device
+- `channels` is the number of audio channels supported by the device.  Mono devices typically have 1 and stereo devices
+  typically have 2, but this may vary depending on your hardware.
+
+The provided launch file will set `out_dir` to `$HOME` if it is run as a normal user. When launching the
+`audio_recorder_node` as part of a `robot_upstart` job it is possible that the `$HOME` envar is not defined, which is
+why the default is `/tmp`.
+
+Audio files are always saved as uncompressed .wav files.
+
+
+Recording Audio
+------------------
+
+StartRecording.action
+```
+string filename
+uint64 duration
+---
+bool success
+string path
+---
+uint32 time_elapsed
+uint32 time_remaining
+```
+
+Files created with the `start_recording` action are uncompressed `.wav` files.
+
+To start recording, use the `start_recording` action, optionally providing a filename for the
+resulting .avi file and a recording duration.
+
+If the `filename` parameter is empty, the default format of `YYYYMMDDhhmmss.wav` will be used.  If the `filename`
+parameter is not empty, the `.wav` file extension should be included.  At present no other audio formats
+are supported.
+
+If the `duration` parameter is zero the video will record until `stop_recording` is called (see below). otherwise the
+file will stop recording after the specified duration in seconds.
+
+If `duration` is zero the action will generate no feedback. The file will record indefinitely until the corresponding
+`stop_recording` action is called.
+
+If `duration` is non-zero, feeback will be published at 1Hz, providing meta-data about the audio including the elapsed
+recording time, and time remaining.  Once the specified duration has elapsed the action will return the result and
+stop recording automatically.
+
+
+Stopping a Recording
+-----------------------
+
+StopRecording.action
+```
+bool arg
+---
+bool success
+string path
+uint64 duration
+---
+bool arg
+```
+
+To stop a recording in-progress, run the `stop_recording` action.  The `arg` parameter is a placeholder and its
+actual value is ignored.
+
+The `stop_recording` action produces no feedback and returns the result immediately.
+
+
+Is-Recording Indicator
+-----------------------
+
+The `audio_recorder_node` publishes an `is_recording` topic which indicates whether or not audio is currently being
+recorded.  This topic publishes true/false at a rate of 10Hz.
+
+
+Status
+-------
+
+The `audio_recorder_node` also publishes its internal status at a rate of 10Hz on the `recorder_status` topic.
+
+Status.msg
+```
+uint8 status
+
+```
+
+The `status` field is a bit-field with the following meanings:
+- 1-bit: The node has started and is running
+- 2-bit: The node is currently recording audio
+
+e.g.
+A status of `0b00000010 = 2` indicates that the node is running normally, but is not recording.
+
+e.g.
+A status of `0b00000110 = 6` indicates that the node is running normally and recording video.

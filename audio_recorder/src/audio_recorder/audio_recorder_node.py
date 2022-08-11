@@ -3,10 +3,15 @@
 import actionlib
 import rospy
 import subprocess
+import time
 
 from audio_recorder_msgs.msg import StartRecordingAction, StartRecordingFeedback, StartRecordingGoal, StartRecordingResult
 from audio_recorder_msgs.msg import StopRecordingAction, StopRecordingFeedback, StopRecordingGoal, StopRecordingResult
 from audio_recorder_msgs.msg import Status
+from std_msgs.msg import Bool
+
+def defaultFilename():
+    return time.strftime("%Y%m%d%H%M%S")+".wav"
 
 class AudioRecorderNode:
     def __init__(self, output_dir, card_id=0, device_id=0, bitrate=44100, channels=1):
@@ -24,17 +29,21 @@ class AudioRecorderNode:
 
         self.is_recording = False
         self.status_pub = rospy.Publisher('recorder_status', Status, queue_size=1)
+        self.is_recording_pub = rospy.Publisher('is_recording', Bool, queue_size=1)
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             rate.sleep()
 
-            msg = Status()
+            status = Status()
+            rec = Bool()
+            rec.data = self.is_recording
             if self.is_recording:
-                msg.status = Status.RECORDING | Status.RUNNING
+                status.status = Status.RECORDING | Status.RUNNING
             else:
-                msg.status = Status.RUNNING
-            self.status_pub.publish(msg)
+                status.status = Status.RUNNING
+            self.status_pub.publish(status)
+            self.is_recording_pub.publish(rec)
 
     def startRecording_actionHandler(self, req):
         if self.is_recording:
@@ -44,24 +53,27 @@ class AudioRecorderNode:
             self.start_recording_srv.set_aborted(result, "Previous recording is still in progress")
             return
 
-        self.is_recording = True
+        self.is_recording = true
+        if req.filename:
+            self.wav_path = "{0}/{1}".format(self.output_dir, req.filename)
+        else:
+            self.wav_path = "{0}/{1}".format(self.output_dir, defaultFilename())
 
         if req.duration == 0:
             cmd = ['arecord',
                    '-D', self.hw_id,
                    '-r', str(self.bitrate),
                    '-c', str(self.channels),
-                   '{0}/{1}'.format(self.output_dir, req.filename)]
+                   self.wav_path]
         else:
             cmd = ['arecord',
                    '-D', self.hw_id,
                    '-r', str(self.bitrate),
                    '-c', str(self.channels),
                    '-d', str(req.duration),
-                   '{0}/{1}'.format(self.output_dir, req.filename)]
+                   self.wav_path]
 
         self.record_start_time = rospy.get_rostime()
-        self.wav_path = '{0}/{1}'.format(self.output_dir, req.filename)
         self.alsa_proc = subprocess.Popen(cmd)
 
         if req.duration != 0:
