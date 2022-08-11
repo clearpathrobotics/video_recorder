@@ -1,0 +1,7 @@
+bool arg
+---
+bool success
+string path
+uint64 duration
+---
+bool arg

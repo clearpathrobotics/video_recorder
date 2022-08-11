@@ -1,0 +1,8 @@
+string filename
+uint64 duration
+---
+bool success
+string path
+---
+uint32 time_elapsed
+uint32 time_remaining

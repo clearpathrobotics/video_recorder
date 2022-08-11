@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="out_dir"      default="$(optenv HOME /tmp)" />
+
+  <!-- ALSA device attributes -->
+  <arg name="card" default="0" />
+  <arg name="device" default="0" />
+  <arg name="bitrate" default="44100" />
+  <arg name="channels" default="1" />
+
+  <node pkg="audio_recorder" type="audio_recorder_node" name="audio_recorder_$(arg card)_$(arg device)">
+    <param name="out_dir"  value="$(arg out_dir)" />
+    <param name="card"     value="$(arg card)" />
+    <param name="device"   value="$(arg device)" />
+    <param name="bitrate"  value="$(arg bitrate)" />
+    <param name="channels" value="$(arg channels)" />
+  </node>
+</launch>

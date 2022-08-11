@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>audio_recorder_msgs</name>
+  <version>0.0.2</version>
+  <description>Messages for recording wav files from audio topics</description>
+
+  <maintainer email="civerachb@clearpathrobotics.com">Chris Iverach-Brereton</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>message_generation</build_depend>
+  <build_export_depend>message_generation</build_export_depend>
+
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>genmsg</depend>
+  <depend>std_msgs</depend>
+
+  <export>
+  </export>
+</package>

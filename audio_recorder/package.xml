@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>audio_recorder</name>
+  <version>0.0.2</version>
+  <description>Utilities for recording audio data to a file on-disk</description>
+
+  <maintainer email="civerachb@clearpathrobotics.com">Chris Iverach-Brereton</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>audio_recorder_msgs</depend>
+
+  <export>
+  </export>
+</package>

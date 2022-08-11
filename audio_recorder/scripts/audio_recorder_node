@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+import rospy
+from audio_recorder.audio_recorder_node import AudioRecorderNode
+
+def main():
+    rospy.init_node('audio_recorder_node')
+
+    card = rospy.get_param('~card', 0)
+    device = rospy.get_param('~device', 0)
+    bitrate = rospy.get_param('~bitrate', 44100)
+    channels = rospy.get_param('~channels', 1)
+    out_dir = rospy.get_param('~out_dir', '/tmp')
+
+    node = AudioRecorderNode(out_dir, card, device, bitrate, channels)
+    node.run()
+
+if __name__=="__main__":
+    main()
