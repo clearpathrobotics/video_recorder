@@ -53,7 +53,7 @@ class AudioRecorderNode:
             self.start_recording_srv.set_aborted(result, "Previous recording is still in progress")
             return
 
-        self.is_recording = true
+        self.is_recording = True
         if req.filename:
             self.wav_path = "{0}/{1}".format(self.output_dir, req.filename)
         else:
