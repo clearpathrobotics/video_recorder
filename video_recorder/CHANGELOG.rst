@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.3 (2022-09-01)
+------------------
 * Allow cancelling fixed-duration videos
 * Create the output directory if it doesn't already exist
 * Contributors: Chris Iverach-Brereton
