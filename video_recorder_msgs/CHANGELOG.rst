@@ -2,6 +2,9 @@
 Changelog for package video_recorder_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.0.2 (2022-06-24)
 ------------------
 

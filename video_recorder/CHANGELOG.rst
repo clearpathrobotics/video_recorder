@@ -2,6 +2,12 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Allow cancelling fixed-duration videos
+* Create the output directory if it doesn't already exist
+* Contributors: Chris Iverach-Brereton
+
 0.0.2 (2022-06-24)
 ------------------
 * Add an optional parameter to set a hard maximum duration on videos recorded by the node.
