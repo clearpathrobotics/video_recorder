@@ -2,6 +2,11 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Make sure the node is actually installed correctly
+* Contributors: Chris Iverach-Brereton
+
 0.0.3 (2022-09-01)
 ------------------
 * Allow cancelling fixed-duration videos

@@ -3,6 +3,9 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+Forthcoming
+-----------
+
 0.0.3 (2022-09-01)
 ------------------
 * Update the docs, add the is_recording + default filename to the audio recorder
