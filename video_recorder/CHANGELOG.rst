@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.4 (2022-09-22)
+------------------
 * Make sure the node is actually installed correctly
 * Contributors: Chris Iverach-Brereton
 
