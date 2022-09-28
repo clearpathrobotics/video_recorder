@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import actionlib
+import os
 import rospy
 import subprocess
 import time
@@ -20,8 +21,17 @@ class AudioRecorderNode:
         self.output_dir = output_dir
         self.channels = channels
 
+        self.createStorageDirectory()
+
         self.start_recording_srv = actionlib.SimpleActionServer('start_recording', StartRecordingAction, self.startRecording_actionHandler, False)
         self.stop_recording_srv = actionlib.SimpleActionServer('stop_recording', StopRecordingAction, self.stopRecording_actionHandler, False)
+
+    def createStorageDirectory(self):
+        try:
+            os.makedirs(self.output_dir)
+            rospy.logwarn("Output directory {0} created".format(self.output_dir))
+        except FileExistsError:
+            rospy.loginfo("Output directory already exists")
 
     def run(self):
         self.start_recording_srv.start()

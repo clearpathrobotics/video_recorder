@@ -218,8 +218,8 @@ audio_recorder_node:
   bitrate: 44100
   channels: 1
 ```
-- `out_dir` is the directory on-disk to save the recorded files.  The directory is not created if it doesn't already
-  exist on the disk. Default: `/tmp`
+- `out_dir` is the directory on-disk to save the recorded files.  If the directory does not already exist it
+  will be created automatically. Default: `/tmp`
 - `card` and `device` form part of the ALSA hardware device identifier.  For example, if `arecord -l` shows
   `card 1: U0x46d0x825 [USB Device 0x46d:0x825], device 0: USB Audio [USB Audio]` then use `card: 1` and
   `device: 0`.
