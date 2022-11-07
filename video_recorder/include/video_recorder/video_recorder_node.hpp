@@ -7,6 +7,7 @@
 
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
+#include <geometry_msgs/Twist.h>
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Bool.h>
@@ -32,10 +33,12 @@ namespace video_recorder
     VideoRecorderNode(ros::NodeHandle &nh,
       const std::string &img_topic,
       const std::string &out_dir,
+      const std::string &camera_frame,
       const double fps,
       const double output_height,
       const double output_width,
-      const bool compressed);
+      const bool compressed,
+      const bool record_metadata);
     ~VideoRecorderNode();
 
     const bool isRecording(){ return is_recording_.data; }
@@ -52,10 +55,12 @@ namespace video_recorder
     // ROS parameters
     std::string img_topic_;
     std::string out_dir_;
+    std::string camera_frame_;
     double fps_;
     int output_height_;
     int output_width_;
     bool compressed_;
+    bool record_metadata_;
 
     // Thread control
     pthread_mutex_t video_recording_lock_;
@@ -96,5 +101,10 @@ namespace video_recorder
     // General Utilities
     bool image2mat(const sensor_msgs::Image &src, cv::Mat &dst);
     std::string defaultFilename(std::string extension);
+
+    // Meta-data
+    // Robot's current joint states, position on the map, etc...
+    void recordMetadata(const std::string &filename);
+    geometry_msgs::Twist lookupTransform(const std::string &target_frame, const std::string &fixed_frame);
   };
 }
