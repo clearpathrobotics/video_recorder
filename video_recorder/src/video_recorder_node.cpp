@@ -113,6 +113,7 @@ static void letterbox_or_pillarbox(const cv::Mat &src, cv::Mat &dst)
  * \param output_width    The width of the recorded video files in pixels
  * \param compressed      Is the image topic a compressed image, or raw image?
  * \param record_metadata Should we record additional meta-data about the robot's state in a CSV along with the
+ * \param supports_zoom   Does the camera support zooming?
  *                        photo/video file?
  */
 VideoRecorderNode::VideoRecorderNode(
@@ -124,7 +125,8 @@ VideoRecorderNode::VideoRecorderNode(
   const double output_height,
   const double output_width,
   const bool compressed,
-  const bool record_metadata
+  const bool record_metadata,
+  const bool supports_zoom
 ) :
   nh_(nh),
   img_topic_(img_topic),
@@ -135,6 +137,7 @@ VideoRecorderNode::VideoRecorderNode(
   output_width_(output_width),
   compressed_(compressed),
   record_metadata_(record_metadata),
+  supports_zoom_(supports_zoom),
   frame_service_(nh, img_topic + "/save_image",      boost::bind(&VideoRecorderNode::saveImageHandler, this, _1), false),
   start_service_(nh, img_topic + "/start_recording", boost::bind(&VideoRecorderNode::startRecordingHandler, this, _1), false),
   stop_service_(nh, img_topic + "/stop_recording",   boost::bind(&VideoRecorderNode::stopRecordingHandler, this, _1), false)
@@ -158,6 +161,10 @@ VideoRecorderNode::VideoRecorderNode(
 
   is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic + "/is_recording", 1);
   status_pub_ = nh.advertise<video_recorder_msgs::Status>(img_topic + "/recorder_status", 1);
+
+  zoom_level_ = 0.0;
+  if (supports_zoom_)
+    zoom_sub_ = nh.subscribe("zoom_level", 1, &VideoRecorderNode::zoomLevelCallback, this);
 
   // subscribe to either the raw sensor_msgs/Image or sensor_msgs/CompressedImage topic as needed
   if (!compressed_)
@@ -434,6 +441,15 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
 }
 
 /*!
+ * Callback for the zoom_level subscription. Sets the zoom_level_ variable
+ * according to the provided argument
+ */
+void VideoRecorderNode::zoomLevelCallback(const std_msgs::Float64 &zoom)
+{
+  zoom_level_ = zoom.data;
+}
+
+/*!
  * Subscription to the image topic we're responsible for capturing.  As long as the node is alive
  * we keep an open subscription, but we only process the frame if we're either recording or about to
  * save a still image.
@@ -667,6 +683,18 @@ void VideoRecorderNode::recordMetadata(const std::string &filename)
   if (time_str[strlen(time_str)-1] == '\n')
     time_str[strlen(time_str)-1] = '\0';
 
+  std::string zoom_lvl;
+  if (supports_zoom_)
+  {
+    std::stringstream ss;
+    ss << zoom_level_;
+    ss >> zoom_lvl;
+  }
+  else
+  {
+    zoom_lvl = "null";
+  }
+
   std::ofstream fout(filename+".json");
   fout << "{" << std::endl
        << "  \"time\": \"" << time_str << "\"," << std::endl
@@ -694,7 +722,8 @@ void VideoRecorderNode::recordMetadata(const std::string &filename)
        << "      \"y\": " << pos_cam.angular.y << "," << std::endl
        << "      \"z\": " << pos_cam.angular.z << std::endl
        << "    }" << std::endl
-       << "  }" << std::endl
+       << "  }," << std::endl
+       << "  \"zoom\":" << zoom_lvl.c_str() << std::endl
        << "}" << std::endl;
   fout.close();
 
@@ -843,6 +872,7 @@ int main(int argc, char** argv)
   int output_width;
   bool compressed;
   bool record_metadata;
+  bool supports_zoom;
 
   nh.param<std::string>("topic", img_topic, "/camera/image_raw");
   nh.param<std::string>("out_dir", out_dir, "/tmp");
@@ -852,6 +882,7 @@ int main(int argc, char** argv)
   nh.param<int>("output_width", output_width, 640);
   nh.param<bool>("compressed", compressed, false);
   nh.param<bool>("record_metadata", record_metadata, false);
+  nh.param<bool>("enable_zoom", supports_zoom, false);
 
   // ensure the output directory ends with a / and create it if it doesn't already exist!
   if (out_dir[out_dir.length()-1] != '/')
@@ -860,7 +891,9 @@ int main(int argc, char** argv)
   }
   createOutputDirectory(out_dir);
 
-  VideoRecorderNode node(nh, img_topic, out_dir, camera_frame, fps, output_height, output_width, compressed, record_metadata);
+  VideoRecorderNode node(nh, img_topic, out_dir, camera_frame,
+                         fps, output_height, output_width,
+                         compressed, record_metadata, supports_zoom);
   ros::spin();
   return 0;
 }

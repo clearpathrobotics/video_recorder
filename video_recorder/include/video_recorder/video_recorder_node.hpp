@@ -11,6 +11,7 @@
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <video_recorder_msgs/SaveImageAction.h>
 #include <video_recorder_msgs/StartRecordingAction.h>
 #include <video_recorder_msgs/StopRecordingAction.h>
@@ -38,7 +39,8 @@ namespace video_recorder
       const double output_height,
       const double output_width,
       const bool compressed,
-      const bool record_metadata);
+      const bool record_metadata,
+      const bool supports_zoom);
     ~VideoRecorderNode();
 
     const bool isRecording(){ return is_recording_.data; }
@@ -50,6 +52,7 @@ namespace video_recorder
     StartRecordingActionServer start_service_;
     StopRecordingActionServer stop_service_;
     ros::Subscriber img_sub_;
+    ros::Subscriber zoom_sub_;
     ros::Publisher is_recording_pub_;
 
     // ROS parameters
@@ -61,6 +64,7 @@ namespace video_recorder
     int output_width_;
     bool compressed_;
     bool record_metadata_;
+    bool supports_zoom_;
 
     // Thread control
     pthread_mutex_t video_recording_lock_;
@@ -79,6 +83,7 @@ namespace video_recorder
     void imageCallback(const sensor_msgs::Image &img);
     void compressedImageCallback(const sensor_msgs::CompressedImage &img);
     void processImage(const cv::Mat &m);
+    void zoomLevelCallback(const std_msgs::Float64 &zoom);
 
     // Video capture
     std_msgs::Bool is_recording_;
@@ -104,6 +109,7 @@ namespace video_recorder
 
     // Meta-data
     // Robot's current joint states, position on the map, etc...
+    double zoom_level_;
     void recordMetadata(const std::string &filename);
     geometry_msgs::Twist lookupTransform(const std::string &target_frame, const std::string &fixed_frame);
   };
