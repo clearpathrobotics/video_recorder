@@ -699,6 +699,7 @@ void VideoRecorderNode::recordMetadata(const std::string &filename)
   fout << "{" << std::endl
        << "  \"time\": \"" << time_str << "\"," << std::endl
        << "  \"file\": \"" << filename << "\"," << std::endl
+       << "  \"topic\": \"" << img_topic_ << "\"," << std::endl
        << "  \"robot_pose\": {" << std::endl
        << "    \"linear\": {" << std::endl
        << "      \"x\": " << pos_map.linear.x << "," << std::endl
