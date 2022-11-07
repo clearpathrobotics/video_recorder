@@ -10,12 +10,12 @@
 
   <group ns="$(arg topic)">
     <node pkg="video_recorder" type="video_recorder_node" name="capture">
-      <param name="compressed"        value="$(arg compressed)" />
-      <param name="fps"               value="$(arg fps)" />
-      <param name="out_dir"           value="$(arg out_dir)" />
-      <param name="topic"             value="$(arg topic)" />
-      <param name="output_height"     value="$(arg video_height)" />
-      <param name="output_width"      value="$(arg video_width)" />
+      <param name="compressed"       value="$(arg compressed)" />
+      <param name="fps"              value="$(arg fps)" />
+      <param name="out_dir"          value="$(arg out_dir)" />
+      <param name="topic"            value="$(arg topic)" />
+      <param name="output_height"    value="$(arg video_height)" />
+      <param name="output_width"     value="$(arg video_width)" />
       <param name="record_metadata"  value="$(arg record_metadata)" />
 
       <!--
