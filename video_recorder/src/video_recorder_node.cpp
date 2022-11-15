@@ -724,7 +724,7 @@ void VideoRecorderNode::recordMetadata(const std::string &filename)
        << "      \"z\": " << pos_cam.angular.z << std::endl
        << "    }" << std::endl
        << "  }," << std::endl
-       << "  \"zoom\":" << zoom_lvl.c_str() << std::endl
+       << "  \"zoom\": " << zoom_lvl.c_str() << std::endl
        << "}" << std::endl;
   fout.close();
 
