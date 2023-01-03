@@ -52,7 +52,7 @@ static inline bool ends_with(std::string const & value, std::string const & endi
  * \param src  The image we're going to resize
  * \param dst  The image we're writing to. This image must be initialized to a black image of the correct size and type
  */
-static void letterbox_or_pillarbox(const cv::Mat &src, cv::Mat &dst)
+static void letterbox_or_pillarbox(const cv::UMat &src, cv::UMat &dst)
 {
   double src_aspect = (double)src.cols / (double)src.rows;
   double dst_aspect = (double)dst.cols / (double)dst.rows;
@@ -431,7 +431,7 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
 
   if (is_recording_.data || capture_next_frame_)
   {
-    cv::Mat m;
+    cv::UMat m;
     bool conversion_ok = image2mat(img, m);
 
     // Just kick out early if the conversion fails
@@ -457,7 +457,8 @@ void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedIma
   if (is_recording_.data || capture_next_frame_)
   {
     cv::Mat m = cv::imdecode(img.data, cv::IMREAD_UNCHANGED);
-    processImage(m);
+    cv::UMat um = m.getUMat(cv::ACCESS_READ);
+    processImage(um);
   }
   is_recording_pub_.publish(is_recording_);
 }
@@ -465,7 +466,7 @@ void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedIma
 /*!
  * Backend for imageCallback and compressedImageCallback to reduce duplication
  */
-void VideoRecorderNode::processImage(const cv::Mat &m)
+void VideoRecorderNode::processImage(const cv::UMat &m)
 {
   status_.frames_processed_last_second++;
   if (is_recording_.data)
@@ -491,9 +492,9 @@ cv::VideoWriter *VideoRecorderNode::createVideoWriter()
                              cv::Size(output_width_, output_height_), true);
 }
 
-void VideoRecorderNode::appendFrame(const cv::Mat &img)
+void VideoRecorderNode::appendFrame(const cv::UMat &img)
 {
-  cv::Mat resized = cv::Mat::zeros(output_height_, output_width_, CV_8UC3);
+  cv::UMat resized = cv::UMat::zeros(output_height_, output_width_, CV_8UC3);
   letterbox_or_pillarbox(img, resized);
   pthread_mutex_lock(&video_recording_lock_);
   *(vout_) << resized;
@@ -529,7 +530,7 @@ void VideoRecorderNode::stopRecording()
   }
 }
 
-void VideoRecorderNode::saveImage(const cv::Mat &img)
+void VideoRecorderNode::saveImage(const cv::UMat &img)
 {
   capture_next_frame_ = false;
   cv::imwrite(image_path_, img);
@@ -537,9 +538,9 @@ void VideoRecorderNode::saveImage(const cv::Mat &img)
 }
 
 /*!
- * Converts the raw sensor image into a BGR8 cv::Mat object
+ * Converts the raw sensor image into a BGR8 cv::UMat object
  */
-bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::Mat &dst)
+bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::UMat &dst)
 {
   // realsense2_camera seems to have a bug where it uses the OpenCV encoding, which breaks the conversion
   // so make a shallow copy and ensure the encoding is correct

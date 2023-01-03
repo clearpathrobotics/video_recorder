@@ -73,7 +73,7 @@ namespace video_recorder
     void stopRecordingHandler(const video_recorder_msgs::StopRecordingGoalConstPtr& goal);
     void imageCallback(const sensor_msgs::Image &img);
     void compressedImageCallback(const sensor_msgs::CompressedImage &img);
-    void processImage(const cv::Mat &m);
+    void processImage(const cv::UMat &m);
 
     // Video capture
     std_msgs::Bool is_recording_;
@@ -84,17 +84,17 @@ namespace video_recorder
     std::string video_path_;
     cv::VideoWriter *vout_;
     cv::VideoWriter *createVideoWriter();
-    void appendFrame(const cv::Mat &img);
+    void appendFrame(const cv::UMat &img);
     void stopRecording();
 
     // Still image capture
     bool capture_next_frame_;
     bool image_saved_;
     std::string image_path_;
-    void saveImage(const cv::Mat &img);
+    void saveImage(const cv::UMat &img);
 
     // General Utilities
-    bool image2mat(const sensor_msgs::Image &src, cv::Mat &dst);
+    bool image2mat(const sensor_msgs::Image &src, cv::UMat &dst);
     std::string defaultFilename(std::string extension);
   };
 }
