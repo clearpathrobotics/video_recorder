@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
 
 import actionlib
+import datetime
+import json
 import rospy
 import subprocess
+import tf2_ros
 import time
 
 from audio_recorder_msgs.msg import StartRecordingAction, StartRecordingFeedback, StartRecordingGoal, StartRecordingResult
 from audio_recorder_msgs.msg import StopRecordingAction, StopRecordingFeedback, StopRecordingGoal, StopRecordingResult
 from audio_recorder_msgs.msg import Status
+from geometry_msgs.msg import Twist, Vector3
 from std_msgs.msg import Bool
+
+from tf.transformations import euler_from_quaternion
 
 def defaultFilename():
     return time.strftime("%Y%m%d%H%M%S")+".wav"
 
 class AudioRecorderNode:
-    def __init__(self, output_dir, card_id=0, device_id=0, bitrate=44100, channels=1):
+    def __init__(self, output_dir, card_id=0, device_id=0, bitrate=44100, channels=1, record_metadata=False, mic_frame="mic_frame"):
         self.hw_id = 'hw:{0},{1}'.format(card_id, device_id)
         self.bitrate = bitrate
         self.output_dir = output_dir
         self.channels = channels
+        self.record_metadata = record_metadata
+        self.mic_frame = mic_frame
 
         self.start_recording_srv = actionlib.SimpleActionServer('start_recording', StartRecordingAction, self.startRecording_actionHandler, False)
         self.stop_recording_srv = actionlib.SimpleActionServer('stop_recording', StopRecordingAction, self.stopRecording_actionHandler, False)
@@ -76,6 +84,9 @@ class AudioRecorderNode:
         self.record_start_time = rospy.get_rostime()
         self.alsa_proc = subprocess.Popen(cmd)
 
+        if self.record_metadata:
+            self.saveMetaData()
+
         if req.duration != 0:
             rate = rospy.Rate(1)
             for i in range(req.duration):
@@ -113,3 +124,78 @@ class AudioRecorderNode:
 
         self.is_recording = False
         self.stop_recording_srv.set_succeeded(result)
+
+    def saveMetaData(self):
+        json_path = f"{self.wav_path}.json"
+        robot_pose = self.lookupTransform("map", "base_link")
+        mic_pose = self.lookupTransform("base_link", self.mic_frame)
+
+        json_data = {
+            "time": str(datetime.datetime.now()),
+            "file": self.wav_path,
+
+            "alsa_device": self.hw_id,
+            "bitrate": self.bitrate,
+            "channels": self.channels,
+
+            "robot_pose": {
+                "linear": {
+                    "x": robot_pose.linear.x,
+                    "y": robot_pose.linear.y,
+                    "z": robot_pose.linear.z
+                },
+                "angular": {
+                    "x": robot_pose.angular.x,
+                    "y": robot_pose.angular.y,
+                    "z": robot_pose.angular.z
+                }
+            },
+
+            "mic_pose": {
+                "linear": {
+                    "x": mic_pose.linear.x,
+                    "y": mic_pose.linear.y,
+                    "z": mic_pose.linear.z
+                },
+                "angular": {
+                    "x": mic_pose.angular.x,
+                    "y": mic_pose.angular.y,
+                    "z": mic_pose.angular.z
+                }
+            }
+        }
+
+        fout = open(json_path, 'w')
+        json.dump(json_data, fout, indent=2)
+        fout.close()
+
+    def lookupTransform(self, fixed_frame, target_frame):
+        try:
+            tf_buf = tf2_ros.Buffer(rospy.Duration(2.0))
+            tf_listener = tf2_ros.TransformListener(tf_buf)
+            tf_stamped = tf_buf.lookup_transform(fixed_frame, target_frame, rospy.Time(0), rospy.Duration(5.0))
+
+            (roll, pitch, yaw) = euler_from_quaternion([
+                tf_stamped.transform.rotation.x,
+                tf_stamped.transform.rotation.y,
+                tf_stamped.transform.rotation.z,
+                tf_stamped.transform.rotation.w,
+            ])
+
+            return Twist(
+                Vector3(
+                    tf_stamped.transform.translation.x,
+                    tf_stamped.transform.translation.y,
+                    tf_stamped.transform.translation.z
+                ),
+                Vector3(
+                    roll, pitch, yaw
+                )
+            )
+
+        except Exception as err:
+            rospy.logwarn(f"Failed to lookup transform from {fixed_frame} to {target_frame}: {err}")
+            return Twist(
+                Vector3(0, 0, 0),
+                Vector3(0, 0, 0)
+            )

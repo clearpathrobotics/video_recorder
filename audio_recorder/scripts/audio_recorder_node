@@ -11,8 +11,10 @@ def main():
     bitrate = rospy.get_param('~bitrate', 44100)
     channels = rospy.get_param('~channels', 1)
     out_dir = rospy.get_param('~out_dir', '/tmp')
+    record_metadata = rospy.get_param('~record_metadata', False)
+    mic_frame = rospy.get_param('~mic_frame', 'mic_frame')
 
-    node = AudioRecorderNode(out_dir, card, device, bitrate, channels)
+    node = AudioRecorderNode(out_dir, card, device, bitrate, channels, record_metadata, mic_frame)
     node.run()
 
 if __name__=="__main__":
