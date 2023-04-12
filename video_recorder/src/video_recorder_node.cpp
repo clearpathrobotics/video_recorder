@@ -747,25 +747,39 @@ void VideoRecorderNode::recordMetadata(const std::string &filename)
  */
 geometry_msgs::Twist VideoRecorderNode::lookupTransform(const std::string &target_frame, const std::string &fixed_frame)
 {
-  tf2_ros::Buffer tf_buf(ros::Duration(2.0));
-  tf2_ros::TransformListener tf_listener(tf_buf);
-
-  geometry_msgs::TransformStamped tf_stamped = tf_buf.lookupTransform(
-    target_frame, fixed_frame, ros::Time(0), ros::Duration(5.0));
-
   geometry_msgs::Twist result;
-  result.linear.x = tf_stamped.transform.translation.x;
-  result.linear.y = tf_stamped.transform.translation.y;
-  result.linear.z = tf_stamped.transform.translation.z;
 
-  tf::Quaternion rotq(tf_stamped.transform.rotation.x, tf_stamped.transform.rotation.y, tf_stamped.transform.rotation.z, tf_stamped.transform.rotation.w);
-  tf::Matrix3x3 m(rotq);
-  double roll, pitch, yaw;
-  m.getRPY(roll, pitch, yaw);
+  try
+  {
+    tf2_ros::Buffer tf_buf(ros::Duration(2.0));
+    tf2_ros::TransformListener tf_listener(tf_buf);
 
-  result.angular.x = roll;
-  result.angular.y = pitch;
-  result.angular.z = yaw;
+    geometry_msgs::TransformStamped tf_stamped = tf_buf.lookupTransform(
+      target_frame, fixed_frame, ros::Time(0), ros::Duration(5.0));
+
+    result.linear.x = tf_stamped.transform.translation.x;
+    result.linear.y = tf_stamped.transform.translation.y;
+    result.linear.z = tf_stamped.transform.translation.z;
+
+    tf::Quaternion rotq(tf_stamped.transform.rotation.x, tf_stamped.transform.rotation.y, tf_stamped.transform.rotation.z, tf_stamped.transform.rotation.w);
+    tf::Matrix3x3 m(rotq);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+    result.angular.x = roll;
+    result.angular.y = pitch;
+    result.angular.z = yaw;
+  }
+  catch(tf2::LookupException err)
+  {
+    ROS_WARN("Failed to look up transform from %s to %s", fixed_frame.c_str(), target_frame.c_str());
+    result.linear.x = 0;
+    result.linear.y = 0;
+    result.linear.z = 0;
+    result.angular.x = 0;
+    result.angular.y = 0;
+    result.angular.z = 0;
+  }
 
   return result;
 }
