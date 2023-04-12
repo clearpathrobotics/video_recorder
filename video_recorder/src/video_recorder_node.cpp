@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <iostream>
 #include <sys/stat.h>
 #include <thread>
@@ -18,6 +19,11 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/videoio/videoio.hpp>
 
+#include <tf/tf.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
+using namespace geometry_msgs;
 using namespace video_recorder;
 using namespace video_recorder_msgs;
 
@@ -101,27 +107,37 @@ static void letterbox_or_pillarbox(const cv::UMat &src, cv::UMat &dst)
  * \param nh              The NodeHandle for this node
  * \param img_topic       The image topic to subscribe to. Must be sensor_msgs/Image or sensor_msgs/CompressedImage
  * \param out_dir         The directory where images and videos are saved
+ * \param camera_frame    The frame the camera records in
  * \param fps             The baseline FPS of the camera topic
  * \param output_height   The height of the recorded video files in pixels
  * \param output_width    The width of the recorded video files in pixels
  * \param compressed      Is the image topic a compressed image, or raw image?
+ * \param record_metadata Should we record additional meta-data about the robot's state in a CSV along with the
+ * \param supports_zoom   Does the camera support zooming?
+ *                        photo/video file?
  */
 VideoRecorderNode::VideoRecorderNode(
   ros::NodeHandle &nh,
   const std::string &img_topic,
   const std::string &out_dir,
+  const std::string &camera_frame,
   const double fps,
   const double output_height,
   const double output_width,
-  const bool compressed
+  const bool compressed,
+  const bool record_metadata,
+  const bool supports_zoom
 ) :
   nh_(nh),
   img_topic_(img_topic),
   out_dir_(out_dir),
+  camera_frame_(camera_frame),
   fps_(fps),
   output_height_(output_height),
   output_width_(output_width),
   compressed_(compressed),
+  record_metadata_(record_metadata),
+  supports_zoom_(supports_zoom),
   frame_service_(nh, img_topic + "/save_image",      boost::bind(&VideoRecorderNode::saveImageHandler, this, _1), false),
   start_service_(nh, img_topic + "/start_recording", boost::bind(&VideoRecorderNode::startRecordingHandler, this, _1), false),
   stop_service_(nh, img_topic + "/stop_recording",   boost::bind(&VideoRecorderNode::stopRecordingHandler, this, _1), false)
@@ -145,6 +161,10 @@ VideoRecorderNode::VideoRecorderNode(
 
   is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic + "/is_recording", 1);
   status_pub_ = nh.advertise<video_recorder_msgs::Status>(img_topic + "/recorder_status", 1);
+
+  zoom_level_ = 0.0;
+  if (supports_zoom_)
+    zoom_sub_ = nh.subscribe("zoom_level", 1, &VideoRecorderNode::zoomLevelCallback, this);
 
   // subscribe to either the raw sensor_msgs/Image or sensor_msgs/CompressedImage topic as needed
   if (!compressed_)
@@ -255,6 +275,9 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
       }
     }
     ss >> video_path_;
+
+    if (record_metadata_)
+      recordMetadata(video_path_);
 
     // create the video_writer
     ROS_INFO("Recording to %s for %d seconds (0=inf)", video_path_.c_str(), (int)goal->duration);
@@ -418,6 +441,15 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
 }
 
 /*!
+ * Callback for the zoom_level subscription. Sets the zoom_level_ variable
+ * according to the provided argument
+ */
+void VideoRecorderNode::zoomLevelCallback(const std_msgs::Float64 &zoom)
+{
+  zoom_level_ = zoom.data;
+}
+
+/*!
  * Subscription to the image topic we're responsible for capturing.  As long as the node is alive
  * we keep an open subscription, but we only process the frame if we're either recording or about to
  * save a still image.
@@ -476,6 +508,8 @@ void VideoRecorderNode::processImage(const cv::UMat &m)
 
   if (capture_next_frame_)
   {
+    if (record_metadata_)
+      recordMetadata(image_path_);
     saveImage(m);
   }
 }
@@ -630,6 +664,112 @@ bool VideoRecorderNode::image2mat(const sensor_msgs::Image &src, cv::UMat &dst)
   return frame_ok;
 }
 
+/*!
+ * Record the current time, position on the map, and camera frame position to a CSV file
+ *
+ * \param filename  The base filename for the resulting meta-data file
+ */
+void VideoRecorderNode::recordMetadata(const std::string &filename)
+{
+  ROS_INFO("Recording metadata for %s...", filename.c_str());
+
+  // get the current camera pose and robot position on the map
+  geometry_msgs::Twist pos_map = lookupTransform("map", "base_link");
+  geometry_msgs::Twist pos_cam = lookupTransform("base_link", camera_frame_);
+
+  // get the current time
+  // ctime adds a newline, so remove it
+  auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  char *time_str = std::ctime(&now);
+  if (time_str[strlen(time_str)-1] == '\n')
+    time_str[strlen(time_str)-1] = '\0';
+
+  std::string zoom_lvl;
+  if (supports_zoom_)
+  {
+    std::stringstream ss;
+    ss << zoom_level_;
+    ss >> zoom_lvl;
+  }
+  else
+  {
+    zoom_lvl = "null";
+  }
+
+  std::ofstream fout(filename+".json");
+  fout << "{" << std::endl
+       << "  \"time\": \"" << time_str << "\"," << std::endl
+       << "  \"file\": \"" << filename << "\"," << std::endl
+       << "  \"topic\": \"" << img_topic_ << "\"," << std::endl
+       << "  \"robot_pose\": {" << std::endl
+       << "    \"linear\": {" << std::endl
+       << "      \"x\": " << pos_map.linear.x << "," << std::endl
+       << "      \"y\": " << pos_map.linear.y << "," << std::endl
+       << "      \"z\": " << pos_map.linear.z << std::endl
+       << "    }," << std::endl
+       << "    \"angular\": {" << std::endl
+       << "      \"x\": " << pos_map.angular.x << "," << std::endl
+       << "      \"y\": " << pos_map.angular.y << "," << std::endl
+       << "      \"z\": " << pos_map.angular.z << std::endl
+       << "    }" << std::endl
+       << "  }," << std::endl
+       << "  \"camera_pose\": {" << std::endl
+       << "    \"linear\": {" << std::endl
+       << "      \"x\": " << pos_cam.linear.x << "," << std::endl
+       << "      \"y\": " << pos_cam.linear.y << "," << std::endl
+       << "      \"z\": " << pos_cam.linear.z << std::endl
+       << "    }," << std::endl
+       << "    \"angular\": {" << std::endl
+       << "      \"x\": " << pos_cam.angular.x << "," << std::endl
+       << "      \"y\": " << pos_cam.angular.y << "," << std::endl
+       << "      \"z\": " << pos_cam.angular.z << std::endl
+       << "    }" << std::endl
+       << "  }," << std::endl
+       << "  \"zoom\": " << zoom_lvl.c_str() << std::endl
+       << "}" << std::endl;
+  fout.close();
+
+  ROS_INFO("Location on map when saving %s: %f %f %f %f %f %f",
+    filename.c_str(), pos_map.linear.x, pos_map.linear.y, pos_map.linear.z,
+    pos_map.angular.x, pos_map.angular.y, pos_map.angular.z);
+  ROS_INFO("Camera position when saving %s: %f %f %f %f %f %f",
+    filename.c_str(), pos_cam.linear.x, pos_cam.linear.y, pos_cam.linear.z,
+    pos_cam.angular.x, pos_cam.angular.y, pos_cam.angular.z);
+}
+
+/*!
+ * Get the current/newest tf between two frames
+ *
+ * \param target_frame  The target frame to look up
+ * \param fixed_frame   The fixed frame we're looking of target_frame in
+ *
+ * \return The position of target_frame relative to fixed_frame
+ */
+geometry_msgs::Twist VideoRecorderNode::lookupTransform(const std::string &target_frame, const std::string &fixed_frame)
+{
+  tf2_ros::Buffer tf_buf(ros::Duration(2.0));
+  tf2_ros::TransformListener tf_listener(tf_buf);
+
+  geometry_msgs::TransformStamped tf_stamped = tf_buf.lookupTransform(
+    target_frame, fixed_frame, ros::Time(0), ros::Duration(5.0));
+
+  geometry_msgs::Twist result;
+  result.linear.x = tf_stamped.transform.translation.x;
+  result.linear.y = tf_stamped.transform.translation.y;
+  result.linear.z = tf_stamped.transform.translation.z;
+
+  tf::Quaternion rotq(tf_stamped.transform.rotation.x, tf_stamped.transform.rotation.y, tf_stamped.transform.rotation.z, tf_stamped.transform.rotation.w);
+  tf::Matrix3x3 m(rotq);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+
+  result.angular.x = roll;
+  result.angular.y = pitch;
+  result.angular.z = yaw;
+
+  return result;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// MAIN
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -728,17 +868,23 @@ int main(int argc, char** argv)
 
   std::string img_topic;
   std::string out_dir;
+  std::string camera_frame;
   double fps;
   int output_height;
   int output_width;
   bool compressed;
+  bool record_metadata;
+  bool supports_zoom;
 
   nh.param<std::string>("topic", img_topic, "/camera/image_raw");
   nh.param<std::string>("out_dir", out_dir, "/tmp");
+  nh.param<std::string>("camera_frame", camera_frame, "camera");
   nh.param<double>("fps", fps, 30.0);
   nh.param<int>("output_height", output_height, 480);
   nh.param<int>("output_width", output_width, 640);
   nh.param<bool>("compressed", compressed, false);
+  nh.param<bool>("record_metadata", record_metadata, false);
+  nh.param<bool>("enable_zoom", supports_zoom, false);
 
   // ensure the output directory ends with a / and create it if it doesn't already exist!
   if (out_dir[out_dir.length()-1] != '/')
@@ -747,7 +893,9 @@ int main(int argc, char** argv)
   }
   createOutputDirectory(out_dir);
 
-  VideoRecorderNode node(nh, img_topic, out_dir, fps, output_height, output_width, compressed);
+  VideoRecorderNode node(nh, img_topic, out_dir, camera_frame,
+                         fps, output_height, output_width,
+                         compressed, record_metadata, supports_zoom);
   ros::spin();
   return 0;
 }

@@ -8,11 +8,16 @@
   <arg name="bitrate" default="44100" />
   <arg name="channels" default="1" />
 
+  <arg name="record_metadata" default="false" />
+  <arg name="mic_frame" default="mic_frame" />
+
   <node pkg="audio_recorder" type="audio_recorder_node" name="audio_recorder_$(arg card)_$(arg device)">
     <param name="out_dir"  value="$(arg out_dir)" />
     <param name="card"     value="$(arg card)" />
     <param name="device"   value="$(arg device)" />
     <param name="bitrate"  value="$(arg bitrate)" />
     <param name="channels" value="$(arg channels)" />
+    <param name="record_metadata" value="$(arg record_metadata)" />
+    <param name="mic_frame" value="$(arg mic_frame)" />
   </node>
 </launch>

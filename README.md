@@ -13,6 +13,9 @@ video_recorder_node:
   topic: /camera/image_raw
   out_dir: /home/administrator/capture
   max_duration: 0
+  record_metadata: false
+  camera_frame: camera
+  enable_zoom: false
 ```
 - `topic` is fairly self-explanatory: this is the ROS topic to subscribe to. Default: `/camera/image_raw`
 - `fps` is the FPS of the output file. This should be set to the same FPS that the camera node publihes at. Default: `30`
@@ -23,6 +26,14 @@ video_recorder_node:
 - `max_duration` is the absolute maximum duration of videos recorded by this node in seconds. If it is non-zero
   videos that reach this duration will be stopped automatically.  This parameter is intended as a safety precaution
   against users starting a video and forgetting to stop it, and running out of disk space as a result.  Default: `0`
+- if `record_metadata` is `true` a JSON file containing robot and camera pose information is generated alongside the
+  PNG or AVI files. Default: `false`
+- `camera_frame` is the frame ID of the camera. This is ignored unless `record_metadata` is `true`
+- `enable_zoom` indicates whether or not the camera publishes its current zoom leven as a `std_msgs/Float64`. If it
+  does, the zoom level is recorded in the metadata JSON file.
+
+If `record_metadata` and `enable_zoom` are both `true` the node will subscribe to `zoom_level`.  Use `remap` as
+appropriate to connect this subscription to the correct ROS topic for your camera's zoom level.
 
 If the aspect ratio of the input images doesn't match the output video, the video will be letterboxed/pillarboxed as
 appropriate.
