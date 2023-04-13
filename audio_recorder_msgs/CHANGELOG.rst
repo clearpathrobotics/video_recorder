@@ -2,6 +2,9 @@
 Changelog for package audio_recorder_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.0.4 (2022-09-22)
 ------------------
 
