@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.5 (2023-04-13)
+------------------
 * Add ability to record meta-data about each recording
 * Add exception handling if the tf lookup fails
 * Switch from Mat to UMat to allow OpenCL support

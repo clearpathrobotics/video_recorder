@@ -3,8 +3,8 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+0.0.5 (2023-04-13)
+------------------
 * Add ability to record meta-data about each recording
 * Initial implementation of audio_recorder metadata to match the video_recorder implementation
 * Create the output directory for the audio recorder node to keep the behaviour consistent with the video recorder
