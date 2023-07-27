@@ -97,6 +97,7 @@ namespace video_recorder
     cv::VideoWriter *vout_;
     cv::VideoWriter *createVideoWriter();
     void appendFrame(const cv::UMat &img);
+    void startRecording();
     void stopRecording();
 
     // Still image capture

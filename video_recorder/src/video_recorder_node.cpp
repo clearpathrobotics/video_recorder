@@ -279,20 +279,10 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     }
     ss >> video_path_;
 
-    if (record_metadata_)
-      recordMetadata(video_path_);
-
-    // create the video_writer
+    // record the max duration & start recording
     ROS_INFO("Recording to %s for %d seconds (0=inf)", video_path_.c_str(), (int)goal->duration);
-    pthread_mutex_lock(&video_recording_lock_);
-    // record the start time of the recording and max duration
     desired_video_duration_ = std::chrono::seconds(goal->duration);
-    video_start_time_ = std::chrono::system_clock::now();
-    n_frames_ = 0;
-    vout_ = createVideoWriter();
-    is_recording_.data = true;
-    is_recording_pub_.publish(is_recording_);  // update the latched topic when we start recording
-    pthread_mutex_unlock(&video_recording_lock_);
+    startRecording();
 
     // publish feedback while we're recording if we specified a duration
     ros::Rate rate(10);
@@ -348,7 +338,6 @@ void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopReco
     pthread_mutex_lock(&video_recording_lock_);
     stopRecording();
     pthread_mutex_unlock(&video_recording_lock_);
-
 
     // calculate the total recording time in seconds
     auto stop_time = std::chrono::system_clock::now();
@@ -549,6 +538,25 @@ void VideoRecorderNode::appendFrame(const cv::UMat &img)
     ROS_INFO("User-specified duration elapsed; stopping recording %s", video_path_.c_str());
     stopRecording();
   }
+  pthread_mutex_unlock(&video_recording_lock_);
+}
+
+/*!
+ * Open the video file, create the cv::VideoWriter instance
+ */
+void VideoRecorderNode::startRecording()
+{
+  if (record_metadata_)
+    recordMetadata(video_path_);
+
+  // create the video_writer
+  pthread_mutex_lock(&video_recording_lock_);
+  // record the start time of the recording
+  video_start_time_ = std::chrono::system_clock::now();
+  n_frames_ = 0;
+  vout_ = createVideoWriter();
+  is_recording_.data = true;
+  is_recording_pub_.publish(is_recording_);  // update the latched topic when we start recording
   pthread_mutex_unlock(&video_recording_lock_);
 }
 
