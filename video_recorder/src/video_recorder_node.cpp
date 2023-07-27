@@ -159,7 +159,7 @@ VideoRecorderNode::VideoRecorderNode(
 
   pthread_mutex_init(&video_recording_lock_, NULL);
 
-  is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic + "/is_recording", 1);
+  is_recording_pub_ = nh.advertise<std_msgs::Bool>(img_topic + "/is_recording", 1, true);  // latch the topic
   status_pub_ = nh.advertise<video_recorder_msgs::Status>(img_topic + "/recorder_status", 1);
 
   zoom_level_ = 0.0;
@@ -175,6 +175,9 @@ VideoRecorderNode::VideoRecorderNode(
   frame_service_.start();
   start_service_.start();
   stop_service_.start();
+
+  // publish once to start the latch
+  is_recording_pub_.publish(is_recording_);
 
   pthread_create(&status_thread_, NULL, &statusPublisher, this);
 }
@@ -288,6 +291,7 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     n_frames_ = 0;
     vout_ = createVideoWriter();
     is_recording_.data = true;
+    is_recording_pub_.publish(is_recording_);  // update the latched topic when we start recording
     pthread_mutex_unlock(&video_recording_lock_);
 
     // publish feedback while we're recording if we specified a duration
@@ -472,7 +476,6 @@ void VideoRecorderNode::imageCallback(const sensor_msgs::Image &img)
 
     processImage(m);
   }
-  is_recording_pub_.publish(is_recording_);
 }
 
 /*!
@@ -492,7 +495,6 @@ void VideoRecorderNode::compressedImageCallback(const sensor_msgs::CompressedIma
     cv::UMat um = m.getUMat(cv::ACCESS_READ);
     processImage(um);
   }
-  is_recording_pub_.publish(is_recording_);
 }
 
 /*!
@@ -556,6 +558,7 @@ void VideoRecorderNode::appendFrame(const cv::UMat &img)
 void VideoRecorderNode::stopRecording()
 {
   is_recording_.data = false;
+  is_recording_pub_.publish(is_recording_);  // update the latched topic when we stop recording
   if (vout_ != NULL)
   {
     vout_->release();
