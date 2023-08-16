@@ -92,7 +92,7 @@ Videos created with the `start_recording` action are XVID-encoded AVI files.
 To start recording a video, use the `start_recording` action, optionally providing a filename for the
 resulting .avi file and a recording duration.
 
-If the `filename` parameter is empty, the default format of `YYYYMMDDhhmmss.avi` will be used.  If the `filename`
+If the `filename` parameter is empty, the default format of `YYYY-MM-DD_hh-mm-ss.avi` will be used.  If the `filename`
 parameter is not empty, the `.avi` file extension should be included.  At present no other video encoding formats
 are supported.
 
@@ -152,7 +152,7 @@ uint32 time_remaining
 To save a single frame as an image, use the `save_image` action, optionally specifying the filename
 for the resulting image and a delay in seconds.
 
-If the `filename` parameter is empty, the default format of `YYYYMMDDhhmmss.png` will be used.  If the `filename`
+If the `filename` parameter is empty, the default format of `YYYY-MM-DD_hh-mm-ss.avi.png` will be used.  If the `filename`
 parameter is not empty, the file extension should be included in the parameter.  Supported extensions are:
 - `.png` (default),
 - `.jpg` (or `.jpeg`), and
@@ -265,8 +265,8 @@ Files created with the `start_recording` action are uncompressed `.wav` files.
 To start recording, use the `start_recording` action, optionally providing a filename for the
 resulting .avi file and a recording duration.
 
-If the `filename` parameter is empty, the default format of `YYYYMMDDhhmmss.wav` will be used.  If the `filename`
-parameter is not empty, the `.wav` file extension should be included.  At present no other audio formats
+If the `filename` parameter is empty, the default format of `YYYY-MM-DD_hh-mm-ss.avi.wav` will be used.  If the\
+`filename` parameter is not empty, the `.wav` file extension should be included.  At present no other audio formats
 are supported.
 
 If the `duration` parameter is zero the video will record until `stop_recording` is called (see below). otherwise the
