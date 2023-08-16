@@ -45,23 +45,28 @@ class AudioRecorderNode:
         self.start_recording_srv.start()
         self.stop_recording_srv.start()
 
-        self.is_recording = False
         self.status_pub = rospy.Publisher('recorder_status', Status, queue_size=1)
-        self.is_recording_pub = rospy.Publisher('is_recording', Bool, queue_size=1)
+        self.is_recording_pub = rospy.Publisher('is_recording', Bool, queue_size=1, latch=True)
+
+        # publish the initial state of the is_recording topic
+        self.is_recording = False
+        self.notify_is_recording_changed()
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             rate.sleep()
 
             status = Status()
-            rec = Bool()
-            rec.data = self.is_recording
             if self.is_recording:
                 status.status = Status.RECORDING | Status.RUNNING
             else:
                 status.status = Status.RUNNING
             self.status_pub.publish(status)
-            self.is_recording_pub.publish(rec)
+
+    def notify_is_recording_changed(self):
+        """Publish to the latched .../is_recording topic
+        """
+        self.is_recording_pub.publish(Bool(self.is_recording))
 
     def startRecording_actionHandler(self, req):
         if self.is_recording:
@@ -72,6 +77,7 @@ class AudioRecorderNode:
             return
 
         self.is_recording = True
+        self.notify_is_recording_changed()
         if req.filename:
             self.wav_path = "{0}/{1}".format(self.output_dir, req.filename)
         else:
@@ -107,6 +113,7 @@ class AudioRecorderNode:
                 self.start_recording_srv.publish_feedback(feedback)
 
             self.is_recording = False
+            self.notify_is_recording_changed()
             self.alsa_proc.communicate()
 
         result = StartRecordingResult()
@@ -133,6 +140,7 @@ class AudioRecorderNode:
         result.duration = int(elapsed.to_sec())
 
         self.is_recording = False
+        self.notify_is_recording_changed()
         self.stop_recording_srv.set_succeeded(result)
 
     def saveMetaData(self):
