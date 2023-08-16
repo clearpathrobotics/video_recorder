@@ -2,6 +2,13 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Latch the `is_recording` topic
+* Use dynamic subscribers to the video topic to preserve bandwidth
+* Improve the default filename formatting
+* Contributors: Chris Iverach-Brereton
+
 0.0.5 (2023-04-13)
 ------------------
 * Add ability to record meta-data about each recording
