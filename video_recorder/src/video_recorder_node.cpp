@@ -234,7 +234,7 @@ std::string VideoRecorderNode::defaultFilename(std::string extension)
   std::tm* timeinfo;
   std::time(&rawtime);
   timeinfo = std::localtime(&rawtime);
-  std::strftime(time_str,80,"%Y%m%d%H%M%S",timeinfo);
+  std::strftime(time_str,80,"%Y-%m-%d_%H-%M-%S",timeinfo);
   std::puts(time_str);
   ss << time_str << "." << extension;
 

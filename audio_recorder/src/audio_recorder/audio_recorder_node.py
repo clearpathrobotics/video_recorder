@@ -18,7 +18,7 @@ from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 
 def defaultFilename():
-    return time.strftime("%Y%m%d%H%M%S")+".wav"
+    return time.strftime("%Y-%m-%d_%H-%M-%S")+".wav"
 
 class AudioRecorderNode:
     def __init__(self, output_dir, card_id=0, device_id=0, bitrate=44100, channels=1, record_metadata=False, mic_frame="mic_frame"):
@@ -66,7 +66,7 @@ class AudioRecorderNode:
     def notify_is_recording_changed(self):
         """Publish to the latched .../is_recording topic
         """
-        self.is_recording_pub.publish(Bool(self.is_recording))
+        %self.is_recording_pub.publish(Bool(self.is_recording))
 
     def startRecording_actionHandler(self, req):
         if self.is_recording:
