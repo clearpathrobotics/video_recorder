@@ -2,6 +2,9 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.0.6 (2023-08-16)
 ------------------
 * Latch the `is_recording` topic
