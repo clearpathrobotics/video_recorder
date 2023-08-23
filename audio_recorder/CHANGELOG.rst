@@ -3,6 +3,11 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+Forthcoming
+-----------
+* Add a dependency on alsa-utils
+* Contributors: Chris Iverach-Brereton
+
 0.0.7 (2023-08-23)
 ------------------
 * Fix a typo in the audio recorder node
