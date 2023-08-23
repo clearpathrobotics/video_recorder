@@ -3,8 +3,8 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+0.0.7 (2023-08-23)
+------------------
 * Fix a typo in the audio recorder node
 * Contributors: Chris Iverach-Brereton
 
