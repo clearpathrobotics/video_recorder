@@ -3,8 +3,8 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+0.0.8 (2023-08-23)
+------------------
 * Add a dependency on alsa-utils
 * Contributors: Chris Iverach-Brereton
 
