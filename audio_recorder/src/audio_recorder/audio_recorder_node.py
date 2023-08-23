@@ -66,7 +66,7 @@ class AudioRecorderNode:
     def notify_is_recording_changed(self):
         """Publish to the latched .../is_recording topic
         """
-        %self.is_recording_pub.publish(Bool(self.is_recording))
+        self.is_recording_pub.publish(Bool(self.is_recording))
 
     def startRecording_actionHandler(self, req):
         if self.is_recording:
