@@ -256,9 +256,9 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
   if (!(status_.status & video_recorder_msgs::Status::RUNNING))
   {
     ROS_WARN("Unable to start recording; no data received from the camera yet");
-    result.path = "";
+    result.path = video_path_;
     result.success = false;
-    start_service_.setAborted(result, "Unable to start recording; no data received yet");
+    start_service_.setSucceeded(result);
   }
   else if (!is_recording_.data)
   {
@@ -318,9 +318,9 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
   else
   {
     ROS_WARN("Unable to start recording; node is already recording to %s", video_path_.c_str());
-    result.path = "";
+    result.path = video_path_;
     result.success = false;
-    start_service_.setAborted(result, "Unable to start recording; node is already recording");
+    start_service_.setSucceeded(result);
   }
 }
 
@@ -357,7 +357,7 @@ void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopReco
     result.path = "";
     result.size = 0;
     result.success = false;
-    stop_service_.setAborted(result, "Unable to stop recording; node is not recording");
+    stop_service_.setSucceeded(result);
   }
 }
 
@@ -427,9 +427,9 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
   else
   {
     ROS_WARN("Already queued to record the next frame");
-    result.path = "";
+    result.path = image_path_;
     result.success = false;
-    frame_service_.setAborted(result, "SaveImage has already been requested");
+    frame_service_.setSucceeded(result);
   }
 }
 

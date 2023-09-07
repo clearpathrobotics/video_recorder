@@ -73,7 +73,8 @@ class AudioRecorderNode:
             rospy.logwarn("Unable to start new audio recording; the previous one is still in progress")
             result = StartRecordingResult()
             result.success = False
-            self.start_recording_srv.set_aborted(result, "Previous recording is still in progress")
+            result.path = self.wav_path
+            self.start_recording_srv.set_succeeded(result)
             return
 
         self.is_recording = True
@@ -127,7 +128,7 @@ class AudioRecorderNode:
             rospy.logwarn("Unable to stop recording; no recording in progress")
             result = StopRecordingResult()
             result.success = False
-            self.stop_recording_srv.set_aborted(result, "No recording to stop")
+            self.stop_recording_srv.set_succeeded(result)
             return
 
         self.alsa_proc.terminate()
