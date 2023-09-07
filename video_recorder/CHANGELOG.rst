@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.9 (2023-09-07)
+------------------
 * Don't abort if we get a double-record or double-stop; treat these as successesful action invocation (but with .success set to false to indicate no new recording was made) and send the existing path if appropriate.
 * Contributors: Chris Iverach-Brereton
 
