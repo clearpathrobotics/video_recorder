@@ -21,10 +21,11 @@ def defaultFilename():
     return time.strftime("%Y-%m-%d_%H-%M-%S")+".wav"
 
 class AudioRecorderNode:
-    def __init__(self, output_dir, card_id=0, device_id=0, bitrate=44100, channels=1, record_metadata=False, mic_frame="mic_frame"):
+    def __init__(self, output_dir, mount_dir="", card_id=0, device_id=0, bitrate=44100, channels=1, record_metadata=False, mic_frame="mic_frame"):
         self.hw_id = 'hw:{0},{1}'.format(card_id, device_id)
         self.bitrate = bitrate
         self.output_dir = output_dir
+        self.mount_dir = mount_dir
         self.channels = channels
         self.record_metadata = record_metadata
         self.mic_frame = mic_frame
@@ -73,16 +74,23 @@ class AudioRecorderNode:
             rospy.logwarn("Unable to start new audio recording; the previous one is still in progress")
             result = StartRecordingResult()
             result.success = False
-            result.path = self.wav_path
+            result.path = self.result_path
             self.start_recording_srv.set_succeeded(result)
             return
 
         self.is_recording = True
         self.notify_is_recording_changed()
         if req.filename:
-            self.wav_path = "{0}/{1}".format(self.output_dir, req.filename)
+            filename = req.filename
         else:
-            self.wav_path = "{0}/{1}".format(self.output_dir, defaultFilename())
+            filename = defaultFilename()
+        self.wav_path = f"{self.output_dir}/{filename}"
+        if self.mount_dir:
+            self.result_path = f"{self.mount_dir}/{filename}"
+        else:
+            self.result_path = self.wav_path
+
+        rospy.logwarn(self.result_path)
 
         if req.duration == 0:
             cmd = ['arecord',
@@ -119,7 +127,7 @@ class AudioRecorderNode:
 
         result = StartRecordingResult()
         result.success = True
-        result.path = self.wav_path
+        result.path = self.result_path
         self.start_recording_srv.set_succeeded(result)
 
 
@@ -137,7 +145,7 @@ class AudioRecorderNode:
 
         result = StopRecordingResult()
         result.success = True
-        result.path = self.wav_path
+        result.path = self.result_path
         result.duration = int(elapsed.to_sec())
 
         self.is_recording = False
