@@ -34,6 +34,7 @@ namespace video_recorder
     VideoRecorderNode(ros::NodeHandle &nh,
       const std::string &img_topic,
       const std::string &out_dir,
+      const std::string &mount_path,
       const std::string &camera_frame,
       const double fps,
       const double output_height,
@@ -58,6 +59,7 @@ namespace video_recorder
     // ROS parameters
     std::string img_topic_;
     std::string out_dir_;
+    std::string mount_path_;
     std::string camera_frame_;
     double fps_;
     int output_height_;
@@ -94,6 +96,7 @@ namespace video_recorder
     std::chrono::duration<unsigned long, std::ratio<1> > max_video_duration_;
     std::chrono::time_point<std::chrono::system_clock> video_start_time_;
     std::string video_path_;
+    std::string video_result_path_;
     cv::VideoWriter *vout_;
     cv::VideoWriter *createVideoWriter();
     void appendFrame(const cv::UMat &img);
@@ -104,6 +107,7 @@ namespace video_recorder
     bool capture_next_frame_;
     bool image_saved_;
     std::string image_path_;
+    std::string image_result_path_;
     void saveImage(const cv::UMat &img);
 
     // General Utilities

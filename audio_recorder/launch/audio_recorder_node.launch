@@ -1,6 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="out_dir"      default="$(optenv HOME /tmp)" />
+  <arg name="mount_path"   default="" />
 
   <!-- ALSA device attributes -->
   <arg name="card" default="0" />
@@ -12,12 +13,13 @@
   <arg name="mic_frame" default="mic_frame" />
 
   <node pkg="audio_recorder" type="audio_recorder_node" name="audio_recorder_$(arg card)_$(arg device)">
-    <param name="out_dir"  value="$(arg out_dir)" />
-    <param name="card"     value="$(arg card)" />
-    <param name="device"   value="$(arg device)" />
-    <param name="bitrate"  value="$(arg bitrate)" />
-    <param name="channels" value="$(arg channels)" />
+    <param name="out_dir"    value="$(arg out_dir)" />
+    <param name="mount_path" value="$(arg mount_path)" />
+    <param name="card"       value="$(arg card)" />
+    <param name="device"     value="$(arg device)" />
+    <param name="bitrate"    value="$(arg bitrate)" />
+    <param name="channels"   value="$(arg channels)" />
     <param name="record_metadata" value="$(arg record_metadata)" />
-    <param name="mic_frame" value="$(arg mic_frame)" />
+    <param name="mic_frame"  value="$(arg mic_frame)" />
   </node>
 </launch>

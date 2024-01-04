@@ -107,6 +107,7 @@ static void letterbox_or_pillarbox(const cv::UMat &src, cv::UMat &dst)
  * \param nh              The NodeHandle for this node
  * \param img_topic       The image topic to subscribe to. Must be sensor_msgs/Image or sensor_msgs/CompressedImage
  * \param out_dir         The directory where images and videos are saved
+ * \param mount_path      A path-like string that replaces out_dir in the result messages when recording data
  * \param camera_frame    The frame the camera records in
  * \param fps             The baseline FPS of the camera topic
  * \param output_height   The height of the recorded video files in pixels
@@ -120,6 +121,7 @@ VideoRecorderNode::VideoRecorderNode(
   ros::NodeHandle &nh,
   const std::string &img_topic,
   const std::string &out_dir,
+  const std::string &mount_path,
   const std::string &camera_frame,
   const double fps,
   const double output_height,
@@ -131,6 +133,7 @@ VideoRecorderNode::VideoRecorderNode(
   nh_(nh),
   img_topic_(img_topic),
   out_dir_(out_dir),
+  mount_path_(mount_path),
   camera_frame_(camera_frame),
   fps_(fps),
   output_height_(output_height),
@@ -256,28 +259,38 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
   if (!(status_.status & video_recorder_msgs::Status::RUNNING))
   {
     ROS_WARN("Unable to start recording; no data received from the camera yet");
-    result.path = video_path_;
+    result.path = video_result_path_;
     result.success = false;
     start_service_.setSucceeded(result);
   }
   else if (!is_recording_.data)
   {
     // First figure out the full path of the .avi file we're saving
-    std::stringstream ss;
-    ss << out_dir_;
+    std::stringstream video_path_ss;
+    std::stringstream result_path_ss;
+    video_path_ss << out_dir_;
+    if (mount_path_.length() > 0)
+      result_path_ss << mount_path_;
+    else
+      result_path_ss << out_dir_;
     if (goal->filename.length() == 0)
     {
-      ss << defaultFilename("avi");
+      std::string default_filename = defaultFilename("avi");
+      video_path_ss << default_filename;
+      result_path_ss << default_filename;
     }
     else
     {
-      ss << goal->filename;
+      video_path_ss << goal->filename;
+      result_path_ss << goal->filename;
       if (!ends_with(goal->filename, ".avi"))
       {
-        ss << ".avi";
+        video_path_ss << ".avi";
+        result_path_ss << ".avi";
       }
     }
-    ss >> video_path_;
+    video_path_ss >> video_path_;
+    result_path_ss >> video_result_path_;
 
     // record the max duration & start recording
     ROS_INFO("Recording to %s for %d seconds (0=inf)", video_path_.c_str(), (int)goal->duration);
@@ -305,20 +318,20 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     {
       ROS_WARN("Recording cancelled!");
       stopRecording();
-      result.path = video_path_;
+      result.path = video_result_path_;
       result.success = false;
       start_service_.setAborted(result, "User cancelled fixed-duration video");
     }
 
     // return the result
-    result.path = video_path_;
+    result.path = video_result_path_;
     result.success = true;
     start_service_.setSucceeded(result);
   }
   else
   {
     ROS_WARN("Unable to start recording; node is already recording to %s", video_path_.c_str());
-    result.path = video_path_;
+    result.path = video_result_path_;
     result.success = false;
     start_service_.setSucceeded(result);
   }
@@ -345,7 +358,7 @@ void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopReco
     unsigned long seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
     result.duration = seconds;
-    result.path = video_path_;
+    result.path = video_result_path_;
     result.size = filesize(video_path_);
     result.success = true;
     stop_service_.setSucceeded(result);
@@ -377,16 +390,24 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
   }
   else if (!capture_next_frame_)
   {
-    // First figure out the full path of the .avi file we're saving
-    std::stringstream ss;
-    ss << out_dir_;
+    // First figure out the full path of the png/bmp/jpg file we're saving
+    std::stringstream image_path_ss;
+    std::stringstream result_path_ss;
+    image_path_ss << out_dir_;
+    if (mount_path_.length() > 0)
+      result_path_ss << mount_path_;
+    else
+      result_path_ss << out_dir_;
     if (goal->filename.length() == 0)
     {
-      ss << defaultFilename("png");
+      std::string default_filename = defaultFilename("png");
+      image_path_ss << default_filename;
+      result_path_ss << default_filename;
     }
     else
     {
-      ss << goal->filename;
+      image_path_ss << goal->filename;
+      result_path_ss << goal->filename;
       // if the user specified a file extension, try to use that if we know what it is
       // otherwise use .png
       if (!ends_with(goal->filename, ".bmp") &&
@@ -396,10 +417,12 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
           // TODO: any more common formats we want to be able to support?
       )
       {
-        ss << ".png";
+        image_path_ss << ".png";
+        result_path_ss << ".png";
       }
     }
-    ss >> image_path_;
+    image_path_ss >> image_path_;
+    result_path_ss >> image_result_path_;
 
     ros::Rate r(1);
     unsigned long time_remaining = goal->delay;
@@ -419,7 +442,7 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
     while (!image_saved_)
       r.sleep();
 
-    result.path = image_path_;
+    result.path = image_result_path_;
     result.success = true;
     frame_service_.setSucceeded(result);
     status_.status &= ~video_recorder_msgs::Status::PHOTO_TIMER;
@@ -427,7 +450,7 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
   else
   {
     ROS_WARN("Already queued to record the next frame");
-    result.path = image_path_;
+    result.path = image_result_path_;
     result.success = false;
     frame_service_.setSucceeded(result);
   }
@@ -893,6 +916,7 @@ int main(int argc, char** argv)
 
   std::string img_topic;
   std::string out_dir;
+  std::string mount_path;
   std::string camera_frame;
   double fps;
   int output_height;
@@ -903,6 +927,7 @@ int main(int argc, char** argv)
 
   nh.param<std::string>("topic", img_topic, "/camera/image_raw");
   nh.param<std::string>("out_dir", out_dir, "/tmp");
+  nh.param<std::string>("mount_path", mount_path, "");
   nh.param<std::string>("camera_frame", camera_frame, "camera");
   nh.param<double>("fps", fps, 30.0);
   nh.param<int>("output_height", output_height, 480);
@@ -918,7 +943,13 @@ int main(int argc, char** argv)
   }
   createOutputDirectory(out_dir);
 
-  VideoRecorderNode node(nh, img_topic, out_dir, camera_frame,
+  // if we've specified a mount path, make sure it ends with a / too
+  if (mount_path.length() > 0 && mount_path[mount_path.length()-1] != '/')
+  {
+    mount_path.push_back('/');
+  }
+
+  VideoRecorderNode node(nh, img_topic, out_dir, mount_path, camera_frame,
                          fps, output_height, output_width,
                          compressed, record_metadata, supports_zoom);
   ros::spin();
