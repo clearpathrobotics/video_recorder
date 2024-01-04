@@ -3,6 +3,7 @@
   <arg name="compressed"       default="false" />
   <arg name="fps"              default="30" />
   <arg name="out_dir"          default="$(optenv HOME /tmp)" />
+  <arg name="mount_path"       default="" />
   <arg name="topic"            default="/camera/image_raw" />
   <arg name="video_height"     default="480" />
   <arg name="video_width"      default="640" />
@@ -14,6 +15,7 @@
       <param name="compressed"       value="$(arg compressed)" />
       <param name="fps"              value="$(arg fps)" />
       <param name="out_dir"          value="$(arg out_dir)" />
+      <param name="mount_path"       value="$(arg mount_path)" />
       <param name="topic"            value="$(arg topic)" />
       <param name="output_height"    value="$(arg video_height)" />
       <param name="output_width"     value="$(arg video_width)" />
