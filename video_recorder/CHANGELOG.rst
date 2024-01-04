@@ -2,6 +2,11 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add the mount_path argument & parameter to the vidio recorder node to allow remapping the result directory if e.g. this node is run inside a docker container
+* Contributors: Chris Iverach-Brereton
+
 0.0.9 (2023-09-07)
 ------------------
 * Don't abort if we get a double-record or double-stop; treat these as successesful action invocation (but with .success set to false to indicate no new recording was made) and send the existing path if appropriate.
