@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>video_recorder</name>
-  <version>0.0.9</version>
+  <version>0.0.10</version>
   <description>Utilities for recording image data to a video file on-disk</description>
 
   <maintainer email="civerachb@clearpathrobotics.com">Chris Iverach-Brereton</maintainer>

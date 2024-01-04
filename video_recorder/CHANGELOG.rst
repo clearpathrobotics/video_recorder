@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.10 (2024-01-04)
+-------------------
 * Add the mount_path argument & parameter to the vidio recorder node to allow remapping the result directory if e.g. this node is run inside a docker container
 * Contributors: Chris Iverach-Brereton
 
