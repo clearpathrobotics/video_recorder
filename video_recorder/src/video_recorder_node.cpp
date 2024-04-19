@@ -320,12 +320,16 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
       stopRecording();
       result.path = video_result_path_;
       result.success = false;
+      result.header.stamp = ros::Time::now();
+      result.header.frame_id = camera_frame_;
       start_service_.setAborted(result, "User cancelled fixed-duration video");
     }
 
     // return the result
     result.path = video_result_path_;
     result.success = true;
+    result.header.stamp = ros::Time::now();
+    result.header.frame_id = camera_frame_;
     start_service_.setSucceeded(result);
   }
   else
@@ -333,6 +337,8 @@ void VideoRecorderNode::startRecordingHandler(const video_recorder_msgs::StartRe
     ROS_WARN("Unable to start recording; node is already recording to %s", video_path_.c_str());
     result.path = video_result_path_;
     result.success = false;
+    result.header.stamp = ros::Time::now();
+    result.header.frame_id = camera_frame_;
     start_service_.setSucceeded(result);
   }
 }
@@ -361,6 +367,8 @@ void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopReco
     result.path = video_result_path_;
     result.size = filesize(video_path_);
     result.success = true;
+    result.header.stamp = ros::Time::now();
+    result.header.frame_id = camera_frame_;
     stop_service_.setSucceeded(result);
   }
   else
@@ -370,6 +378,8 @@ void VideoRecorderNode::stopRecordingHandler(const video_recorder_msgs::StopReco
     result.path = "";
     result.size = 0;
     result.success = false;
+    result.header.stamp = ros::Time::now();
+    result.header.frame_id = camera_frame_;
     stop_service_.setSucceeded(result);
   }
 }
@@ -444,6 +454,8 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
 
     result.path = image_result_path_;
     result.success = true;
+    result.header.stamp = ros::Time::now();
+    result.header.frame_id = camera_frame_;
     frame_service_.setSucceeded(result);
     status_.status &= ~video_recorder_msgs::Status::PHOTO_TIMER;
   }
@@ -452,6 +464,8 @@ void VideoRecorderNode::saveImageHandler(const video_recorder_msgs::SaveImageGoa
     ROS_WARN("Already queued to record the next frame");
     result.path = image_result_path_;
     result.success = false;
+    result.header.stamp = ros::Time::now();
+    result.header.frame_id = camera_frame_;
     frame_service_.setSucceeded(result);
   }
 }

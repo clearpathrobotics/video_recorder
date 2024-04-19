@@ -75,6 +75,8 @@ class AudioRecorderNode:
             result = StartRecordingResult()
             result.success = False
             result.path = self.result_path
+            result.header.stamp = ros::Time::now();
+            result.header.frame_id = camera_frame_;
             self.start_recording_srv.set_succeeded(result)
             return
 
@@ -128,6 +130,8 @@ class AudioRecorderNode:
         result = StartRecordingResult()
         result.success = True
         result.path = self.result_path
+        result.header.stamp = rospy.Time.now()
+        result.header.frame_id = self.mic_frame
         self.start_recording_srv.set_succeeded(result)
 
 
@@ -136,6 +140,8 @@ class AudioRecorderNode:
             rospy.logwarn("Unable to stop recording; no recording in progress")
             result = StopRecordingResult()
             result.success = False
+            result.header.stamp = rospy.Time.now()
+            result.header.frame_id = self.mic_frame
             self.stop_recording_srv.set_succeeded(result)
             return
 
@@ -147,6 +153,8 @@ class AudioRecorderNode:
         result.success = True
         result.path = self.result_path
         result.duration = int(elapsed.to_sec())
+        result.header.stamp = rospy.Time.now()
+        result.header.frame_id = self.mic_frame
 
         self.is_recording = False
         self.notify_is_recording_changed()

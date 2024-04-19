@@ -1,6 +1,7 @@
 string filename
 uint64 duration
 ---
+std_msgs/Header header
 bool success
 string path
 ---
