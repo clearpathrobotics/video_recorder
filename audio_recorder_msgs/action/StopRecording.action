@@ -1,5 +1,6 @@
 bool arg
 ---
+std_msgs/Header header
 bool success
 string path
 uint64 duration

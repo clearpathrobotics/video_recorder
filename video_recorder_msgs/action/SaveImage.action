@@ -1,6 +1,7 @@
 string filename
 uint32 delay
 ---
+std_msgs/Header header
 bool success
 string path
 ---
