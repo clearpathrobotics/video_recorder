@@ -2,6 +2,11 @@
 Changelog for package audio_recorder_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add a header to the result objects for all actions (`#6 <https://github.com/clearpathrobotics/video_recorder/issues/6>`_)
+* Contributors: Chris Iverach-Brereton
+
 0.0.10 (2024-01-04)
 -------------------
 

@@ -3,6 +3,11 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+Forthcoming
+-----------
+* Add a header to the result objects for all actions (`#6 <https://github.com/clearpathrobotics/video_recorder/issues/6>`_)
+* Contributors: Chris Iverach-Brereton
+
 0.0.10 (2024-01-04)
 -------------------
 * Add the mount_path argument & parameter to the audio recorder node to allow remapping the result directory if e.g. this node is run inside a docker container
