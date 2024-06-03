@@ -3,6 +3,11 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+Forthcoming
+-----------
+* Fix the timestamp assignment in the audio recorder
+* Contributors: Chris Iverach-Brereton
+
 0.1.0 (2024-05-27)
 ------------------
 * Add a header to the result objects for all actions (`#6 <https://github.com/clearpathrobotics/video_recorder/issues/6>`_)

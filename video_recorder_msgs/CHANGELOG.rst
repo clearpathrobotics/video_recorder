@@ -2,6 +2,9 @@
 Changelog for package video_recorder_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.1.0 (2024-05-27)
 ------------------
 * Add a header to the result objects for all actions (`#6 <https://github.com/clearpathrobotics/video_recorder/issues/6>`_)
