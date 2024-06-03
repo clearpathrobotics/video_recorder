@@ -75,7 +75,7 @@ class AudioRecorderNode:
             result = StartRecordingResult()
             result.success = False
             result.path = self.result_path
-            result.header.stamp = ros::Time::now();
+            result.header.stamp = rospy.Time.now();
             result.header.frame_id = camera_frame_;
             self.start_recording_srv.set_succeeded(result)
             return
