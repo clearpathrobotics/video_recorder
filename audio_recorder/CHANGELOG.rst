@@ -3,8 +3,8 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+0.1.1 (2024-06-03)
+------------------
 * Fix the timestamp assignment in the audio recorder
 * Contributors: Chris Iverach-Brereton
 
