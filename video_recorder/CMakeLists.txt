@@ -1,39 +1,56 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(video_recorder)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  cv_bridge
-  image_transport
-  tf
-  tf2
-  actionlib
-  actionlib_msgs
-  geometry_msgs
-  video_recorder_msgs
-)
 find_package(OpenCV 4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(ament_cmake REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(video_recorder_msgs REQUIRED)
 
 include_directories(include
-  ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
-catkin_package(CATKIN_DEPENDS actionlib actionlib_msgs video_recorder_msgs)
+add_executable(
+  video_recorder_node 
+    src/video_recorder_node.cpp
+)
 
-add_executable(video_recorder_node src/video_recorder_node.cpp)
-target_link_libraries(video_recorder_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-add_dependencies(video_recorder_node
-    video_recorder_msgs_generate_messages_cpp
-    geometry_msgs_generate_messages_cpp
-    sensor_msgs_generate_messages_cpp
-    std_msgs_generate_messages_cpp
+ament_target_dependencies(
+  video_recorder_node 
+    OpenCV
+    "cv_bridge"
+    "geometry_msgs"
+    "image_transport"
+    "rclcpp"
+    "rclcpp_action"
+    "rclcpp_components"
+    "sensor_msgs"
+    "std_msgs"
+    "tf2"
+    "tf2_ros"
+    "video_recorder_msgs"
 )
 
 install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-
-install(TARGETS ${PROJECT_NAME}_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  DESTINATION share/${PROJECT_NAME}
 )
+
+install(TARGETS
+  ${PROJECT_NAME}_node
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_export_dependencies(
+  video_recorder_msgs
+)
+
+ament_package()

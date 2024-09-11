@@ -5,21 +5,21 @@
 
 #include <pthread.h>
 
-#include <ros/ros.h>
-#include <actionlib/server/simple_action_server.h>
-#include <geometry_msgs/Twist.h>
-#include <sensor_msgs/CompressedImage.h>
-#include <sensor_msgs/Image.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/Float64.h>
-#include <video_recorder_msgs/SaveImageAction.h>
-#include <video_recorder_msgs/StartRecordingAction.h>
-#include <video_recorder_msgs/StopRecordingAction.h>
-#include <video_recorder_msgs/Status.h>
-
-typedef actionlib::SimpleActionServer<video_recorder_msgs::SaveImageAction> SaveImageActionServer;
-typedef actionlib::SimpleActionServer<video_recorder_msgs::StartRecordingAction> StartRecordingActionServer;
-typedef actionlib::SimpleActionServer<video_recorder_msgs::StopRecordingAction> StopRecordingActionServer;
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "rclcpp_components/register_node_macro.hpp"
+#include <geometry_msgs/msg/twist.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <video_recorder_msgs/action/save_image.hpp>
+#include <video_recorder_msgs/action/start_recording.hpp>
+#include <video_recorder_msgs/action/stop_recording.hpp>
+#include <video_recorder_msgs/msg/status.hpp>
+#include "tf2/exceptions.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 namespace video_recorder
 {
@@ -31,30 +31,34 @@ namespace video_recorder
   class VideoRecorderNode
   {
   public:
-    VideoRecorderNode(ros::NodeHandle &nh,
-      const std::string &img_topic,
-      const std::string &out_dir,
-      const std::string &mount_path,
-      const std::string &camera_frame,
-      const double fps,
-      const double output_height,
-      const double output_width,
-      const bool compressed,
-      const bool record_metadata,
-      const bool supports_zoom);
+    typedef typename video_recorder_msgs::action::SaveImage SaveImageAction;
+    typedef typename video_recorder_msgs::action::StartRecording StartRecordingAction;
+    typedef typename video_recorder_msgs::action::StopRecording StopRecordingAction;
+
+    typedef typename rclcpp_action::ServerGoalHandle<SaveImageAction> GoalHandleSaveImage;
+    typedef typename rclcpp_action::ServerGoalHandle<StartRecordingAction> GoalHandleStartRecording;
+    typedef typename rclcpp_action::ServerGoalHandle<StopRecordingAction> GoalHandleStopRecording;
+
+    typedef typename rclcpp_action::Server<SaveImageAction>::SharedPtr SaveImageActionServer;
+    typedef typename rclcpp_action::Server<StartRecordingAction>::SharedPtr StartRecordingActionServer;
+    typedef typename rclcpp_action::Server<StopRecordingAction>::SharedPtr StopRecordingActionServer;
+
+    VideoRecorderNode(std::shared_ptr<rclcpp::Node> node);
+
     ~VideoRecorderNode();
 
     const bool isRecording(){ return is_recording_.data; }
 
   private:
     // Node handle, subscriptions, publications, services
-    ros::NodeHandle &nh_;
-    SaveImageActionServer frame_service_;
-    StartRecordingActionServer start_service_;
-    StopRecordingActionServer stop_service_;
-    ros::Subscriber img_sub_;
-    ros::Subscriber zoom_sub_;
-    ros::Publisher is_recording_pub_;
+    std::shared_ptr<rclcpp::Node> node_ ;
+    SaveImageActionServer frame_server_;
+    StartRecordingActionServer start_server_;
+    StopRecordingActionServer stop_server_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_subscriber_;
+    rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr img_compressed_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr zoom_subscriber_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr is_recording_publisher_;
 
     // ROS parameters
     std::string img_topic_;
@@ -73,24 +77,24 @@ namespace video_recorder
 
     // 1Hz background thread that reports the node's status
     pthread_t status_thread_;
-    ros::Publisher status_pub_;
-    video_recorder_msgs::Status status_;
+    rclcpp::Publisher<video_recorder_msgs::msg::Status>::SharedPtr status_publisher_;
+    video_recorder_msgs::msg::Status status_;
     static void *statusPublisher(void *arg);
 
 
     // Service & subscription callbacks
-    void saveImageHandler(const video_recorder_msgs::SaveImageGoalConstPtr& goal);
-    void startRecordingHandler(const video_recorder_msgs::StartRecordingGoalConstPtr& goal);
-    void stopRecordingHandler(const video_recorder_msgs::StopRecordingGoalConstPtr& goal);
-    void imageCallback(const sensor_msgs::Image &img);
-    void compressedImageCallback(const sensor_msgs::CompressedImage &img);
+    void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr img);
+    void compressedImageCallback(const sensor_msgs::msg::CompressedImage::ConstSharedPtr img);
     void processImage(const cv::UMat &m);
     void processImage(const cv::Mat &m);
-    void zoomLevelCallback(const std_msgs::Float64 &zoom);
+    void zoomLevelCallback(const std_msgs::msg::Float64::ConstSharedPtr zoom);
 
+    void executeSaveImage(const std::shared_ptr<GoalHandleSaveImage> goal_handle);
+    void executeStartRecording(const std::shared_ptr<GoalHandleStartRecording> goal_handle);
+    void executeStopRecording(const std::shared_ptr<GoalHandleStopRecording> goal_handle);
 
     // Video capture
-    std_msgs::Bool is_recording_;
+    std_msgs::msg::Bool is_recording_;
     unsigned long n_frames_;
     std::chrono::duration<unsigned long, std::ratio<1> > desired_video_duration_;
     std::chrono::duration<unsigned long, std::ratio<1> > max_video_duration_;
@@ -111,13 +115,21 @@ namespace video_recorder
     void saveImage(const cv::UMat &img);
 
     // General Utilities
-    bool image2mat(const sensor_msgs::Image &src, cv::UMat &dst);
+    bool image2mat(const sensor_msgs::msg::Image &src, cv::UMat &dst);
     std::string defaultFilename(std::string extension);
 
     // Meta-data
     // Robot's current joint states, position on the map, etc...
     double zoom_level_;
     void recordMetadata(const std::string &filename);
-    geometry_msgs::Twist lookupTransform(const std::string &target_frame, const std::string &fixed_frame);
+    geometry_msgs::msg::Twist lookupTransform(const std::string &target_frame, const std::string &fixed_frame);
+    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
+
+    // helper functions
+    void createOutputDirectory(const std::string &dir);
+    unsigned long filesize(std::string path);
+    inline bool ends_with(std::string const & value, std::string const & ending);
+    void letterbox_or_pillarbox(const cv::UMat &src, cv::UMat &dst);
   };
 }
