@@ -1,26 +1,28 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(audio_recorder_msgs)
 
-find_package(catkin REQUIRED COMPONENTS
-  genmsg
-  actionlib_msgs
+find_package(rosidl_default_generators REQUIRED)
+find_package(ament_cmake REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(std_msgs REQUIRED)
+set(CMAKE_CXX_STANDARD 17)
+
+rosidl_generate_interfaces(
+    ${PROJECT_NAME}
+        msg/Status.msg
+        action/StartRecording.action
+        action/StopRecording.action
+    DEPENDENCIES
+        builtin_interfaces
+        std_msgs
+)
+
+install(FILES
+  DESTINATION include/${PROJECT_NAME}
+)
+
+ament_export_dependencies(
+  builtin_interfaces  
   std_msgs
 )
-
-add_action_files(
-  FILES
-  StartRecording.action
-  StopRecording.action
-)
-
-add_message_files(FILES
-  Status.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-  actionlib_msgs
-  std_msgs
-)
-
-catkin_package(CATKIN_DEPENDS actionlib_msgs std_msgs genmsg)
+ament_package()
