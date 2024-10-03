@@ -25,6 +25,19 @@
 
 using namespace std::chrono_literals;
 
+static const rmw_qos_profile_t rmw_qos_profile_latch =
+{
+  RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+  10,
+  RMW_QOS_POLICY_RELIABILITY_RELIABLE,
+  RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+  RMW_QOS_DEADLINE_DEFAULT,
+  RMW_QOS_LIFESPAN_DEFAULT,
+  RMW_QOS_POLICY_LIVELINESS_SYSTEM_DEFAULT,
+  RMW_QOS_LIVELINESS_LEASE_DURATION_DEFAULT,
+  false
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// VideoRecorderNode
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,8 +104,8 @@ VideoRecorderNode::VideoRecorderNode(std::shared_ptr<rclcpp::Node> node)
 
   pthread_mutex_init(&video_recording_lock_, NULL);
 
-  // std::string is_recording_topic = img_topic_ + "/is_recording";
-  is_recording_publisher_ = node_->create_publisher<std_msgs::msg::Bool>(img_topic_ + "/is_recording", 1);  // TODO: need to latch the topic
+  auto qos_latch = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_latch), rmw_qos_profile_latch);
+  is_recording_publisher_ = node_->create_publisher<std_msgs::msg::Bool>(img_topic_ + "/is_recording", qos_latch);
   status_publisher_ = node_->create_publisher<video_recorder_msgs::msg::Status>(img_topic_ + "/recorder_status", 1);
 
   zoom_level_ = 0.0;
