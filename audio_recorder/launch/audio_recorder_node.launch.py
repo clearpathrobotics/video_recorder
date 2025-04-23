@@ -68,6 +68,11 @@ ARGUMENTS = [
         default_value='1',
         description='ALSA device channels (1: mono, 2: stereo)',
     ),
+    DeclareLaunchArgument(
+        'format',
+        default_value='S16_LE',
+        description='ALSA recording format (e.g. S16_LE, S8_LE)',
+    ),
 
     DeclareLaunchArgument(
         'record_metadata',
@@ -90,6 +95,7 @@ def generate_launch_description():
     device = LaunchConfiguration('device')
     bitrate = LaunchConfiguration('bitrate'),
     channels = LaunchConfiguration('channels')
+    format = LaunchConfiguration('format')
     record_metadata = LaunchConfiguration('record_metadata')
     mic_frame = LaunchConfiguration('mic_frame')
 
@@ -102,6 +108,7 @@ def generate_launch_description():
             {'card_id': card},
             {'channels': channels},
             {'device_id': device},
+            {'format': format},
             {'mic_frame': mic_frame},
             {'mount_dir': mount_dir},
             {'out_dir': out_dir},

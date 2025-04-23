@@ -43,8 +43,10 @@ from rclpy.action import ActionServer
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Bool
-import tf2_ros
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 from tf_transformations import euler_from_quaternion
+
 
 def defaultFilename():
     return time.strftime('%Y-%m-%d_%H-%M-%S')+'.wav'
@@ -53,18 +55,37 @@ class AudioRecorderNode(Node):
     def __init__(self):
         super().__init__('audio_recorder_node')
 
-        self.card_id = self.get_parameter_or('card_id', 0)
-        self.device_id = self.get_parameter_or('device_id', 0)
-        self.bitrate = self.get_parameter_or('bitrate', 44100)
-        self.output_dir = self.get_parameter_or('out_dir', '/tmp')
-        self.mount_dir = self.get_parameter_or('mount_dir', '')
-        self.channels = self.get_parameter_or('channels', 1)
-        self.record_metadata = self.get_parameter_or('record_metadata', True)
-        self.mic_frame = self.get_parameter_or('mic_frame', 'mic_frame')
+        self.declare_parameter('card_id', 0)
+        self.declare_parameter('device_id', 0)
+        self.declare_parameter('bitrate', 44100)
+        self.declare_parameter('out_dir', os.environ['HOME'] or '/tmp')
+        self.declare_parameter('mount_dir', '')
+        self.declare_parameter('channels', 1)
+        self.declare_parameter('format', 'S16_LE')
+        self.declare_parameter('record_metadata', True)
+        self.declare_parameter('mic_frame', 'mic_frame')
+
+        self.card_id = int(self.get_parameter('card_id').value)
+        self.device_id = int(self.get_parameter('device_id').value)
+        self.bitrate = int(self.get_parameter('bitrate').value)
+        self.output_dir = self.get_parameter('out_dir').value
+        self.mount_dir = self.get_parameter('mount_dir').value
+        self.channels = int(self.get_parameter('channels').value)
+        self.format = self.get_parameter('format').value
+        self.record_metadata = bool(self.get_parameter('record_metadata').value)
+        self.mic_frame = self.get_parameter('mic_frame').value
 
         self.hw_id = f'hw:{self.card_id},{self.device_id}'
 
         self.createStorageDirectory()
+
+        self.result_path = ''
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(
+            self.tf_buffer,
+            self
+        )
 
         self.start_recording_srv = ActionServer(
             self,
@@ -109,16 +130,18 @@ class AudioRecorderNode(Node):
         b.data = self.is_recording
         self.is_recording_pub.publish(b)
 
-    def startRecording_actionHandler(self, req):
+    def startRecording_actionHandler(self, action):
+        req = action.request
+
         if self.is_recording:
             self.get_logger().warning('Unable to start new audio recording; the previous one is still in progress')
             result = StartRecording.Result()
             result.success = False
             result.path = self.result_path
-            result.header.stamp = self.get_clock().now()
+            result.header.stamp = self.get_clock().now().to_msg()
             result.header.frame_id = self.camera_frame
-            self.start_recording_srv.set_succeeded(result)
-            return
+            action.abort()
+            return result
 
         self.is_recording = True
         self.notify_is_recording_changed()
@@ -132,21 +155,25 @@ class AudioRecorderNode(Node):
         else:
             self.result_path = self.wav_path
 
-        self.get_logger().warning(self.result_path)
+        self.get_logger().info(f'Results will be saved to {self.result_path}')
 
         if req.duration == 0:
             cmd = ['arecord',
                    '-D', self.hw_id,
                    '-r', str(self.bitrate),
                    '-c', str(self.channels),
+                   '-f', str(self.format),
                    self.wav_path]
         else:
             cmd = ['arecord',
                    '-D', self.hw_id,
                    '-r', str(self.bitrate),
                    '-c', str(self.channels),
+                   '-f', str(self.format),
                    '-d', str(req.duration),
                    self.wav_path]
+
+        self.get_logger().info(' '.join(cmd))
 
         self.record_start_time = self.get_clock().now()
         self.alsa_proc = subprocess.Popen(cmd)
@@ -154,36 +181,38 @@ class AudioRecorderNode(Node):
         if self.record_metadata:
             self.saveMetaData()
 
-        if req.duration != 0:
-            rate = self.create_rate(1)
+        if req.duration > 0:
+            self.get_logger().info('Waiting for recording to finish....')
             for i in range(req.duration):
-                rate.sleep()
+                time.sleep(1)
                 feedback = StartRecording.Feedback()
                 feedback.time_elapsed = i+1
                 feedback.time_remaining = req.duration - i - 1
-                self.start_recording_srv.publish_feedback(feedback)
+                action.publish_feedback(feedback)
 
             self.is_recording = False
             self.notify_is_recording_changed()
             self.alsa_proc.communicate()
+        else:
+            self.get_logger().info('Starting indefinite recording; invoke stop_recording action to stop')  # noqa: E501
 
         result = StartRecording.Result()
         result.success = True
         result.path = self.result_path
-        result.header.stamp = self.get_clock().now()
+        result.header.stamp = self.get_clock().now().to_msg()
         result.header.frame_id = self.mic_frame
-        self.start_recording_srv.set_succeeded(result)
+        action.succeed()
+        return result
 
-
-    def stopRecording_actionHandler(self, req):
+    def stopRecording_actionHandler(self, action):
         if not self.is_recording:
             self.get_logger().warning('Unable to stop recording; no recording in progress')
             result = StopRecording.Result()
             result.success = False
-            result.header.stamp = self.get_clock().now()
+            result.header.stamp = self.get_clock().now().to_msg()
             result.header.frame_id = self.mic_frame
-            self.stop_recording_srv.set_succeeded(result)
-            return
+            action.abort()
+            return result
 
         self.alsa_proc.terminate()
         now = self.get_clock().now()
@@ -192,13 +221,14 @@ class AudioRecorderNode(Node):
         result = StopRecording.Result()
         result.success = True
         result.path = self.result_path
-        result.duration = int(elapsed.to_sec())
-        result.header.stamp = self.get_clock().now()
+        result.duration = round(elapsed.nanoseconds / 1_000_000_000)
+        result.header.stamp = self.get_clock().now().to_msg()
         result.header.frame_id = self.mic_frame
 
         self.is_recording = False
         self.notify_is_recording_changed()
-        self.stop_recording_srv.set_succeeded(result)
+        action.succeed()
+        return result
 
     def saveMetaData(self):
         json_path = f'{self.wav_path}.json'
@@ -246,12 +276,10 @@ class AudioRecorderNode(Node):
 
     def lookupTransform(self, fixed_frame, target_frame):
         try:
-            tf_buf = tf2_ros.Buffer(rclpy.Duration(2.0))
-            _ = tf2_ros.TransformListener(tf_buf)
-            tf_stamped = tf_buf.lookup_transform(
+            tf_stamped = self.tf_buffer.lookup_transform(
                 fixed_frame,
                 target_frame,
-                rclpy.time.Time()
+                self.get_clock().now(),
             )
 
             (roll, pitch, yaw) = euler_from_quaternion([
@@ -261,23 +289,33 @@ class AudioRecorderNode(Node):
                 tf_stamped.transform.rotation.w,
             ])
 
-            return Twist(
-                Vector3(
-                    tf_stamped.transform.translation.x,
-                    tf_stamped.transform.translation.y,
-                    tf_stamped.transform.translation.z
-                ),
-                Vector3(
-                    roll, pitch, yaw
-                )
-            )
+            linear = Vector3()
+            linear.x = tf_stamped.transform.translation.x
+            linear.y = tf_stamped.transform.translation.y
+            linear.z = tf_stamped.transform.translation.z
+
+            angular = Vector3()
+            angular.x = roll
+            angular.y = pitch
+            angular.z = yaw
 
         except Exception as err:
             self.get_logger().warning(f'Failed to lookup transform from {fixed_frame} to {target_frame}: {err}')
-            return Twist(
-                Vector3(0, 0, 0),
-                Vector3(0, 0, 0)
-            )
+
+            linear = Vector3()
+            linear.x = 0
+            linear.y = 0
+            linear.z = 0
+
+            angular = Vector3()
+            angular.x = 0
+            angular.y = 0
+            angular.z = 0
+
+        t = Twist()
+        t.angular = angular
+        t.linear = linear
+        return t
 
 
 def main():
