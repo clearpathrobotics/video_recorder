@@ -3,6 +3,11 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+Forthcoming
+-----------
+* Add missing dependencies
+* Contributors: Chris Iverach-Brereton
+
 2.0.0 (2025-04-23)
 ------------------
 * Update `audio_recorder` to Jazzy (`#7 <https://github.com/clearpathrobotics/video_recorder/issues/7>`_)
