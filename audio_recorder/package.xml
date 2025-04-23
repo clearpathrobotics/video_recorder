@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>audio_recorder</name>
   <version>0.1.1</version>
   <description>Utilities for recording audio data to a file on-disk</description>
@@ -8,13 +8,8 @@
   <license>BSD</license>
 
   <depend>alsa-utils</depend>
-  
-  <depend>action_msgs</depend>
   <depend>audio_recorder_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
-  <depend>tf2_ros</depend>
 
   <export>
     <build_type>ament_python</build_type>
