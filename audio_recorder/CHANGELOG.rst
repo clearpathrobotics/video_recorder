@@ -3,8 +3,8 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Forthcoming
------------
+2.0.0 (2025-04-23)
+------------------
 * Update `audio_recorder` to Jazzy (`#7 <https://github.com/clearpathrobotics/video_recorder/issues/7>`_)
   * Update audio_recorder package to ROS 2
 * Contributors: Chris Iverach-Brereton

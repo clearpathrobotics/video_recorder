@@ -2,8 +2,8 @@
 Changelog for package video_recorder_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.0 (2025-04-23)
+------------------
 * updated audio and video recorder msgs to ROS2 Jazzy
 * Contributors: José Mastrangelo
 

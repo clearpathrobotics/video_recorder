@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.0 (2025-04-23)
+------------------
 * latch the is_recording topic
 * updated video_recorder to ROS2 Jazzy
 * Contributors: José Mastrangelo
