@@ -2,8 +2,8 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2025-04-23)
+------------------
 * Remove old ROS1 depends
 * Contributors: Chris Iverach-Brereton
 
