@@ -3,6 +3,12 @@ Changelog for package audio_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+Forthcoming
+-----------
+* Update `audio_recorder` to Jazzy (`#7 <https://github.com/clearpathrobotics/video_recorder/issues/7>`_)
+  * Update audio_recorder package to ROS 2
+* Contributors: Chris Iverach-Brereton
+
 0.1.1 (2024-06-03)
 ------------------
 * Fix the timestamp assignment in the audio recorder
