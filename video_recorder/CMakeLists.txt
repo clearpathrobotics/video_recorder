@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.8)
 project(video_recorder)
 
 find_package(OpenCV 4 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system)
 find_package(ament_cmake REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -20,12 +19,12 @@ include_directories(include
 )
 
 add_executable(
-  video_recorder_node 
+  video_recorder_node
     src/video_recorder_node.cpp
 )
 
 ament_target_dependencies(
-  video_recorder_node 
+  video_recorder_node
     OpenCV
     "cv_bridge"
     "geometry_msgs"
