@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>audio_recorder</name>
-  <version>2.0.1</version>
+  <version>2.0.2</version>
   <description>Utilities for recording audio data to a file on-disk</description>
 
   <maintainer email="civerachb@clearpathrobotics.com">Chris Iverach-Brereton</maintainer>
