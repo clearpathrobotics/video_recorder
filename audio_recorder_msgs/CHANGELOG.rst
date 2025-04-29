@@ -2,6 +2,9 @@
 Changelog for package audio_recorder_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.1 (2025-04-23)
 ------------------
 * Remove old ROS1 depends

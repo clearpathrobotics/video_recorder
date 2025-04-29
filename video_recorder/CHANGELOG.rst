@@ -2,6 +2,11 @@
 Changelog for package video_recorder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Remove boost from build file; it's not actually used (`#8 <https://github.com/clearpathrobotics/video_recorder/issues/8>`_)
+* Contributors: Chris Iverach-Brereton
+
 2.0.1 (2025-04-23)
 ------------------
 * Remove old ROS1 depends
